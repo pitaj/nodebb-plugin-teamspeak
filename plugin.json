@@ -1,0 +1,19 @@
+{
+    "id": "nodebb-plugin-teamspeak",
+    "name": "NodeBB Teamspeak plugin",
+    "description": "This plugin allows for a widget to be created which shows the channels and clients in a Teamspeak server. It also allows for web-based administration of the server.",
+    "url": "",
+    "library": "./library.js",
+    "staticDirs": {
+        "images": "public/images"
+    },
+    "hooks": [
+        { "hook": "static:app.load", "method": "init" },
+        { "hook": "filter:widgets.getWidgets", "method": "defineWidget"},
+        { "hook": "filter:widget.render:teamspeak", "method": "renderTSwidget" }
+    ],
+    "css": [
+    	"public/css/style.css"
+    ],
+    "templates": "public/templates",
+}

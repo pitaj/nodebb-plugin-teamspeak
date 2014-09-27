@@ -1,0 +1,21 @@
+.channel {
+  padding-left: 10px;
+  font-family: calibri arial sans-serif;
+}
+.channel_name {
+  font-weight: bold;
+
+}
+.client {
+  color: green;
+}
+.client .servergroup6{
+  color: blue;
+}
+
+.clients_online {
+  padding-left:
+}
+.ts3-top {
+  background-image: url("images/ts3logo.png");
+}
