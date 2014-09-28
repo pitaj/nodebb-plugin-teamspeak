@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-teamspeak",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Teampeak server viewer",
   "main": "library.js",
   "scripts": {
@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/pitaj/nodebb-plugin-teamspeak",
   "dependencies": {
-    "node-teamspeak": ">=1.0.4"
+    "node-teamspeak": ">=1.0.4",
+    "async": ">=0.9.0",
+    "node-schedule": ">=0.1.13"
   }
 }
