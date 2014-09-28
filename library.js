@@ -4,9 +4,11 @@
 			path = require("path"),
 			ts3sq = require("node-teamspeak");
 
-	module.exports.renderTSWidget = function(widget, callback) {
+			console.log(1);
 
-		serverInfo = {
+	module.exports.renderTSwidget = function(widget, callback) {
+
+		var serverInfo = {
 			address: widget.data.address,
 			username: widget.data.username,
 			password: widget.data.password,
@@ -177,7 +179,7 @@
 		});
 	};
 
-	module.exports.defineWidgets = function(widgets, callback) {
+	module.exports.defineWidget = function(widgets, callback) {
 		widgets.push({
 			widget: "teamspeak",
 			name: "Teamspeak viewer",

@@ -1,3 +1,26 @@
+.ts3-module {
+  box-shadow: 0 1px 10px rgba(0,0,0,.15);
+}
+
+.ts3-title {
+  font-size: 18px;
+  width: 100%;
+  font-weight: 700;
+  line-height: 21px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  margin: 0;
+  white-space: normal;
+  text-overflow: initial;
+}
+
+.ts3-join-server {
+  font-variant: small-caps;
+}
+
 .channel {
   padding-left: 10px;
   font-family: calibri arial sans-serif;
@@ -9,7 +32,7 @@
 .client {
   color: green;
 }
-.client .servergroup6{
+.client .servergroup6 {
   color: blue;
 }
 

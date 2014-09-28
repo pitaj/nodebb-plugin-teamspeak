@@ -8,12 +8,11 @@
         "images": "public/images"
     },
     "hooks": [
-        { "hook": "static:app.load", "method": "init" },
-        { "hook": "filter:widgets.getWidgets", "method": "defineWidget"},
+        { "hook": "filter:widgets.getWidgets", "method": "defineWidget" },
         { "hook": "filter:widget.render:teamspeak", "method": "renderTSwidget" }
     ],
     "css": [
-    	"public/css/style.css"
+    	"public/style.css"
     ],
-    "templates": "public/templates",
+    "templates": "public/templates"
 }

@@ -1,7 +1,3 @@
-<style>
-  @import 'style.css';
-</style>
-
 <div class="ts3-module">
   <a class="ts3-join-info" href="ts3server://{{ts3-address}}">
     <div class="ts3-title" >
@@ -11,7 +7,7 @@
       {{ts3-address}}
     </div>
     <div class="ts3-join-server">
-      JOIN SERVER
+      join server
     </div>
   </a>
   <div class="ts3-online-clients">
