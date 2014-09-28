@@ -13,7 +13,7 @@
   <div class="ts3-online-clients">
     {{ts3-online-clients}} Users Online
   </div>
-
+  <br>
   <div class="ts3-tree">
     {{ts3-tree}}
   </div>

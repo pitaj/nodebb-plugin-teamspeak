@@ -1,12 +1,14 @@
-(function(module) {
+(function(module, realModule) {
 
-	var fs = require('fs'),
-			path = require("path"),
-			ts3sq = require("node-teamspeak");
+	var fs = require("fs"),
+			async = require('async'),
+	    path = require("path"),
+			ts3sq = require("node-teamspeak"),
+			db = realModule.parent.require('./database'),
+			schedule = require("node-schedule"),
+			ts;
 
-			console.log(1);
-
-	module.exports.renderTSwidget = function(widget, callback) {
+	module.renderTSwidget = function(widget, callback) {
 
 		var serverInfo = {
 			address: widget.data.address,
@@ -16,13 +18,13 @@
 
 		};
 
-		var ts = new ts3sq(serverInfo.address);
+		var tsw = new ts3sq(serverInfo.address);
 
-    ts.on("error", function(err){ console.error(err); });
-    ts.on("connect", function(res){
-      ts.send("login", {client_login_name: serverInfo.username, client_login_password: serverInfo.password}, function(err, res){
+    tsw.on("error", function(err){ console.error(err); });
+    tsw.on("connect", function(res){
+      tsw.send("login", {client_login_name: serverInfo.username, client_login_password: serverInfo.password}, function(err, res){
         if(err) console.error(err);
-        ts.send("use", {sid:1}, function(err, res){
+        tsw.send("use", {sid:1}, function(err, res){
           if(err) console.error(err);
 
 					function HTMLresponse(obj, clients){
@@ -44,6 +46,10 @@
 			        "ts3-address" : serverInfo.address,
 			        "ts3-tree": cycle(obj),
 			      }
+
+						if(!widget.data.showtree){
+							rep["ts3-tree"] = "<!-- tree hidden -->"
+						}
 
 			      for(var x in rep){
 			        pre = pre.replace(new RegExp("{{"+x+"}}", "g"), rep[x]);
@@ -106,10 +112,10 @@
 			    }
 
 			    function getChannelsAndClients(callback){
-			      ts.send("clientlist", function(err, clients){
+			      tsw.send("clientlist", function(err, clients){
 			        if(err) console.error(err);
 			        //console.log(clients);
-			        ts.send("channellist", function(err, channels){
+			        tsw.send("channellist", function(err, channels){
 			          if(err) console.error(err);
 			          //console.log(util.inspect(channels));
 			          var cascade = [];
@@ -143,31 +149,27 @@
 
 			          var clientsinfo = [];
 			          var len = clients.length;
-			          //console.log(c+1);
-			          function addclient(c){
-			            //console.log(c);
-			            ts.send("clientinfo", { clid: clients[c].clid }, function (err, clientinfo){
+
+								async.map(clients, function(client, cb){
+
+			            tsw.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
 
 			              if(err) console.error(err);
 
 			              clientsinfo.push(clientinfo);
-			              var it = find(cascade, clients[c].cid);
+			              var it = find(cascade, client.cid);
 			              if(it){
 			                if(!it.users) it.users = [];
 			                it.users.push(clientinfo);
 			              }
 
-			              if(c+1 >= len){
-			                ts.send("quit");
-			                if(callback) return callback(cascade, clientsinfo);
-			              } else {
-			                addclient(c+1);
-			              }
+										cb(null, clientinfo);
 
 			            });
-			          }
-			          addclient(0);
-			          //if(callback) callback(cascade, clientsinfo);
+			          }, function(err, results){
+									tsw.send("quit");
+			            if(callback) callback(cascade, clientsinfo);
+								});
 			        });
 			      });
 			    }
@@ -179,7 +181,7 @@
 		});
 	};
 
-	module.exports.defineWidget = function(widgets, callback) {
+	module.defineWidget = function(widgets, callback) {
 		widgets.push({
 			widget: "teamspeak",
 			name: "Teamspeak viewer",
@@ -190,4 +192,432 @@
 		callback(null, widgets);
 	};
 
-}(module));
+
+	module.init = function (app, middleware, controllers, callback) {
+
+		app.get('/admin/plugins/teamspeak', middleware.admin.buildHeader, renderAdmin);
+		app.get('/api/admin/plugins/teamspeak', renderAdmin);
+
+
+
+
+		app.get('/api/plugins/teamspeak', renderFront);
+
+		app.post('/api/admin/plugins/teamspeak/save', save);
+
+		callback();
+	};
+
+	module.addAdminNavigation = function(header, callback) {
+
+		header.plugins.push({
+			route: '/plugins/teamspeak',
+			icon: 'fa-microphone', // || fa-headphones || fa-volume-up
+			name: 'Teamspeak Admin'
+		});
+
+		callback(null, header);
+	};
+
+	function render (res, next, path) {
+		db.getObject('plugins:teamspeak', function(err, data) {
+			if (err) {
+				return next(err);
+			}
+			if (data && data.tasks && data.tasks !== "{}") {
+				data = { tasks : JSON.parse(data.tasks) };
+
+			} else {
+				data = {
+					tasks : {
+						"movechannel": {
+							"trigger":"chatcommand",
+							"triggervalue":"!movechannel {{startchannel}} {{endchannel}}",
+							"action":"move",
+							"actionvalue":"{{endchannel}}",
+							"target":"channel",
+							"targetvalue":"{{startchannel}}"
+						},
+					},
+				};
+			}
+
+			console.log(data);
+
+			res.render(path, data);
+		});
+	};
+
+	function renderAdmin (req, res, next) { render( res, next, 'admin/plugins/teamspeak' ) };
+	function renderFront (req, res, next) { render( res, next, 'plugins/teamspeak' ) };
+
+	function save (req, res, next) {
+
+		console.log(req.body.tasks);
+
+		var data = { tasks : req.body.tasks };
+		db.setObject('plugins:teamspeak', data, function(err) {
+			err ? res.json(500, 'Error while saving settings') : res.json('Settings successfully saved');
+		});
+
+		updateTimers(data);
+
+	}
+
+	function updateTimers(data){
+		var tasks = JSON.parse(data.tasks);
+		console.log(tasks);
+		if(!tasks.serverInfo){
+			console.error("No serverinfo");
+			return false;
+		}
+
+		var serverInfo = tasks.serverInfo;
+
+		delete tasks.serverInfo;
+
+		ts = new ts3sq(serverInfo.address);
+
+		ts.on("error", function(err){ console.error(err); });
+		ts.on("connect", function(res){
+			ts.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
+				if(err) console.error(err);
+				ts.send("use", { sid:1 }, function(err, res){
+					if(err) console.error(err);
+					var i;
+					for(i in timers){
+						if (timers.hasOwnProperty(i)){
+							timers[i]();
+						}
+					}
+
+
+					var x;
+					for(x in tasks){
+						if(tasks.hasOwnProperty(x)){
+
+							timers[x] = setupTask(tasks[x]);
+
+						}
+					}
+
+					console.log(timers);
+
+				});
+			});
+		});
+
+
+
+	}
+
+	var timers = {}; // key is task name, value is object
+
+	function setupTask(task, serverInfo){
+
+		function getClientsInChannel(callback, channelid){
+			ts.send("clientlist", function(err, clients){
+				if(err) console.error(err);
+				ts.send("channellist", function(err, channels){
+					if(err) console.error(err);
+					var cascade = [];
+					function find(arr, cid){
+						for(var x=0; x < arr.length; x++){
+							if(arr[x].cid == cid){
+								return arr[x];
+							} else if(arr[x].subChannels) {
+								var out = find(arr[x].subChannels, cid);
+								if(out) return out;
+							}
+						}
+					}
+					for(var i=0; i<channels.length; i++){
+						var it = find(cascade, channels[i].pid);
+						if(it){
+							if(!it.subChannels) it.subChannels = [];
+							it.subChannels.push(channels[i]);
+						} else {
+							cascade.push(channels[i]);
+						}
+					}
+					if(!clients.length) clients = [clients];
+
+					for(var i=0; i<clients.length; i++){
+						if(clients[i].client_type == 0){
+							var it = find(cascade, clients[i].cid);
+							if(it){
+								if(!it.users) it.users = [];
+								it.users.push(clients[i]);
+							}
+						}
+					}
+
+					function gatherUsers(arr){
+						var usersInChannel = [];
+						if(arr.users){
+							usersInChannel = usersInChannel.concat(arr.users);
+						}
+						if(arr.subChannels) {
+							for(var x=0; x < arr.subChannels.length; x++){
+								var out = gatherUsers(arr.subChannels);
+								if(out) usersInChannel = usersInChannel.concat(out);
+							}
+						}
+						return usersInChannel;
+					}
+					var usersInChannel = gatherUsers(find(cascade, channelid));
+					callback(usersInChannel);
+				});
+			});
+		}
+
+		var action = {
+
+			poke: {
+				group: function(){
+					ts.send("clientlist", function(err, clients){
+						if(!clients.length) clients = [clients];
+		        var len = clients.length;
+		        async.map(clients, function(client, cb){
+		          ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
+		            if(err) console.error(err);
+								var groups = (""+clientinfo.client_servergroups).split(',');
+
+								var match = false;
+								for(var i=0; i<groups.length; i++){
+									if(groups[i] == task.targetvalue){
+										match = true;
+									}
+								}
+
+								if(match){
+									ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
+										if (err) console.error(err);
+										cb(null, match);
+									});
+								} else {
+									cb(null, match);
+								}
+
+		          });
+		        }, function(){
+
+						});
+					});
+				},
+				channel: function(){
+
+					getClientsInChannel(function(users){
+						async.map(users, function(client, cb){
+							ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
+								if (err) console.error(err);
+								cb(null, res);
+							});
+						}, function(err, results){
+
+						});
+					}, task.targetvalue);
+				},
+				client: function(){
+					ts.send("clientpoke", { clid: task.targetvalue, msg: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				},
+				server: function(){
+					ts.send("clientlist", function(err, clients){
+						if(!clients.length) clients = [clients];
+						async.map(clients, function(client, cb){
+							ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
+								if (err) console.error(err);
+								cb(null, res);
+							});
+						}, function(){
+
+						});
+					});
+				}
+			},
+
+			move: {
+				channel: function(){
+
+					getClientsInChannel(function(users){
+						async.map(users, function(client, cb){
+							ts.send("clientmove", { clid: client.clid, cid: task.actionvalue }, function(err, res){
+								if (err) console.error(err);
+								cb(null, res);
+							});
+						}, function(err, results){
+
+						});
+					}, task.targetvalue);
+				},
+				client: function(){
+					ts.send("clientmove", { clid: task.targetvalue, cid: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				}
+			},
+
+			kick: {
+				client: function(){
+					ts.send("clientkick", { clid: task.targetvalue, reasonid: 5, reasonmsg: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				}
+			},
+
+			message: {
+				client: function(){
+					ts.send("sendtextmessage", { targetmode: 3, target: task.targetvalue, msg: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				},
+				group: function(){
+					ts.send("clientlist", function(err, clients){
+						if(!clients.length) clients = [clients];
+						var len = clients.length;
+						async.map(clients, function(client, cb){
+							ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
+								if(err) console.error(err);
+								var groups = (""+clientinfo.client_servergroups).split(',');
+
+								var match = false;
+								for(var i=0; i<groups.length; i++){
+									if(groups[i] == task.targetvalue){
+										match = true;
+									}
+								}
+
+								if(match){
+									ts.send("sendtextmessage", { targetmode: 3, target: client.clid, msg: task.actionvalue }, function(err, res){
+										if (err) console.error(err);
+										cb(null, match);
+									});
+								} else {
+									cb(null, match);
+								}
+
+							});
+						}, function(){
+
+						});
+					});
+				},
+				channel: function(){
+					ts.send("sendtextmessage", { targetmode: 2, target: task.targetvalue, msg: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				},
+				server: function(){
+					ts.send("sendtextmessage", { targetmode: 1, target: 1, msg: task.actionvalue }, function(err, res){
+						if (err) console.error(err);
+
+					});
+				}
+			}
+		}
+
+		if(!(task.trigger === "timedate" || task.trigger === "interval"  ||
+				  task.trigger === "connect" || task.trigger === "idle" 		 ||
+						task.trigger === "muted" || task.trigger === "recording" ||
+						task.trigger === "chatcommand")) return false;
+
+		return ({
+
+			timedate: function(){
+				var da = task.triggervalue.split("-");
+				var d = new Date(da[0], da[1], da[2], 12, 0, 0);
+
+				var j = schedule.scheduleJob(d, function(){
+					action[task.action][task.target]();
+				});
+
+				return function(){ j.cancel(); };
+			},
+			interval: function(){
+				var t = {};
+
+				try {
+
+				t = global.setInterval(function(){
+					action[task.action][task.target]();
+				}, task.triggervalue*60000);
+			} catch(e){
+				console.error(JSON.stringify(e));
+			}
+
+				return function(){ clearTimeout(t); };
+			},
+			connect: function(){
+				ts.send("servernotifyregister", { event: "server" }, function(err, res){
+					if(err) console.error(err);
+					ts.addListener("cliententerview", function(client){
+						var groups = (""+client.client_servergroups).split(',');
+						var match = false;
+
+						for(var i=0; i<groups.length; i++){
+							if(groups[i] == task.triggervalue){
+								action[task.action][task.target]();
+							}
+						}
+					});
+				});
+
+				return function(){ ts.removeAllListeners("cliententerview"); };
+			},
+			idle: function(){
+				var grace = task.triggervalue;
+
+			},
+			muted: function(){
+				var grace = task.triggervalue;
+
+			},
+			recording: function(){
+				var grace = task.triggervalue;
+
+			},
+			chatcommand: function(){
+				var command = task.triggervalue;
+				var com = command.match(/\{\{[a-zA-Z0-9]+\}\}/g);
+
+				ts.send("servernotifyregister", { event: "textserver" }, function(err, res){
+					if(err) console.error(err);
+					function blurb(info){
+						var msg = info.msg;
+						msg = msg.split(" ");
+
+						if(msg[0] === command.split(" ")[0]){
+							if(task.actionvalue === com[0]){
+								task.actionvalue = msg[1];
+							}
+							if(task.actionvalue === com[1]){
+								task.actionvalue = msg[2];
+							}
+							if(task.targetvalue === com[0]){
+								task.targetvalue = msg[1];
+							}
+							if(task.targetvalue === com[1]){
+								task.targetvalue = msg[2];
+							}
+						}
+
+						action[task.action][task.target]();
+					}
+					ts.addListener("textmessage", blurb);
+				});
+
+				return function(){ ts.removeAllListeners("textmessage"); };
+
+			}
+		})[task.trigger]();
+
+	}
+
+}(module.exports, module));

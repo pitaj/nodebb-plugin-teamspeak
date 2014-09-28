@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-teamspeak",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Teampeak server viewer",
   "main": "library.js",
   "scripts": {
