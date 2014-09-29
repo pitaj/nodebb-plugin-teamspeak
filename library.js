@@ -90,7 +90,7 @@
 			              var client = o[x].users[i];
 			              if(client.client_type == 0){
 			                html += "<div class='client";
-			                var a = client.client_servergroups.split(',');
+			                var a = (""+client.client_servergroups).split(',');
 			                for(var c =0; c<a.length; c++){
 			                  html += " servergroup"+a[c];
 			                }
