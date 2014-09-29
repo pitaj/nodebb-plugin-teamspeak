@@ -15,16 +15,18 @@
 			username: widget.data.username,
 			password: widget.data.password,
 			name: widget.data.name,
-
+			sqaddress: widget.data.sqaddress,
+			sqport: widget.data.sqport,
+			sid: widget.data.sid
 		};
 
-		var tsw = new ts3sq(serverInfo.address);
+		var tsw = new ts3sq(serverInfo.sqaddress, serverInfo.sqport);
 
     tsw.on("error", function(err){ console.error(err); });
     tsw.on("connect", function(res){
-      tsw.send("login", {client_login_name: serverInfo.username, client_login_password: serverInfo.password}, function(err, res){
+      tsw.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
         if(err) console.error(err);
-        tsw.send("use", {sid:1}, function(err, res){
+        tsw.send("use", { sid:serverInfo.sid }, function(err, res){
           if(err) console.error(err);
 
 					function HTMLresponse(obj, clients){
@@ -531,10 +533,13 @@
 		return ({
 
 			timedate: function(){
-				var da = task.triggervalue.split("-");
-				var d = new Date(da[0], da[1], da[2], 12, 0, 0);
+				var da = task.triggervalue.split(/[\/\:\s]/g);
+				console.log(da);
+				var d = new Date( da[0], da[1], da[2], da[3], da[4], 0 );
+				console.log(d);
 
 				var j = schedule.scheduleJob(d, function(){
+					console.log("ran");
 					action[task.action][task.target]();
 				});
 
@@ -589,7 +594,8 @@
 
 				ts.send("servernotifyregister", { event: "textserver" }, function(err, res){
 					if(err) console.error(err);
-					function blurb(info){
+
+					ts.addListener("textmessage", function(info){
 						var msg = info.msg;
 						msg = msg.split(" ");
 
@@ -607,10 +613,11 @@
 								task.targetvalue = msg[2];
 							}
 						}
+						console.log(task.targetvalue);
+						console.log(task.actionvalue);
 
 						action[task.action][task.target]();
-					}
-					ts.addListener("textmessage", blurb);
+					});
 				});
 
 				return function(){ ts.removeAllListeners("textmessage"); };

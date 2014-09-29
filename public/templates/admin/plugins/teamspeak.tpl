@@ -10,6 +10,9 @@
     Server address: <input type="text" class="form-control" id="ts-address" placeholder="Enter server address" />
   </div>
   <div class="thirds">
+    Server posrt: <input type="text" class="form-control" id="ts-port" placeholder="default port is 10011" />
+  </div>
+  <div class="thirds">
     Username: <input type="text" class="form-control" id="ts-username" placeholder="Enter serverquery username" />
   </div>
   <div class="thirds">
@@ -17,87 +20,88 @@
   </div>
 
 </form>
+
 <form id="taskMaker">
-    <h3>Create automated tasks below</h3>
+  <h3>Create automated tasks below</h3>
 
-    <div id="tasks">
-        <p>This is the GUI for creating very simple tasks. <br>
-          Note: For chat commands, designate variable arguments by enclosing them in braces, like so: {{example_argument}}.
-          They can then be referred to by the task later. See the given "movechannel" task for an example. <br>
-          Time and date actions will occur at noon machine time.
-          </p>
-        <button class="btn" id="addTask">Add task</button>
-        <br><br>
+  <div id="tasks">
+    <p>This is the GUI for creating very simple tasks. <br>
+      Note: For chat commands, designate variable arguments by enclosing them in braces, like so: {{example_argument}}.
+      They can then be referred to by the task later. See the given "movechannel" task for an example. <br>
+      Time and date actions will occur at noon machine time.
+      </p>
+    <button class="btn" id="addTask">Add task</button>
+    <br><br>
 
-        <div id="defaulttask" style="display:none">
+    <div id="defaulttask" style="display:none">
 
-          <strong>Name: <input type="text" class="task-name form-control" placeholder="Task name"/></strong>
-          <br>
+      <strong>Name: <input type="text" class="task-name form-control" placeholder="Task name"/></strong>
+      <br>
 
-          The trigger for this class:
-          <select class="task-trigger form-control">
+      The trigger for this class:
+      <select class="task-trigger form-control">
 
-            <option value="timedate">Time & date</option>
-            <option value="interval">Interval</option>
-            <option value="connect">Group connect</option>
-            <option value="idle">Idle</option>
-            <option value="muted">Mic & Sound muted</option>
-            <option value="recording">User recording</option>
-            <option value="chatcommand">Chat command</option>
+        <option value="timedate">Time & date</option>
+        <option value="interval">Interval</option>
+        <option value="connect">Group connect</option>
+        <option value="idle">Idle</option>
+        <option value="muted">Mic & Sound muted</option>
+        <option value="recording">User recording</option>
+        <option value="chatcommand">Chat command</option>
 
-          </select>
-          <br>
-          <input type="text" class="task-trigger-value form-control" placeholder="yyyy-mm-dd" />
-          <!--
-              Amount of minutes for idle, muted, recording
-              Datepicker for time and date
-              Command for chat command
-              Group id for group connect
-          -->
-          <br>
-          The action for this task:
-          <select class="task-action form-control">
-            <option value="poke">Poke</option>
-            <option value="move">Move</option>
-            <option value="kick">Kick</option>
-            <option value="message">Message</option>
-          </select>
-          <br>
-          <input type="text" class="task-action-value form-control" placeholder="Message" />
-          <!--
-              Message for poke, kick, message
-              Destination channel for move
-          -->
-          <br>
-          The target for this task:
-          <select class="task-target form-control">
-            <option value="group">Group</option>
-            <option value="client">Client</option>
-            <option value="channel">Channel</option>
-            <option value="server">The whole server</option>
-          </select>
-          <!--
-            nothing but client visible for actions [kick]
-            nothing but client visible for triggers
-              [idle, muted, recording]
-          -->
-          <br>
-          <input type="text" class="task-target-value form-control" placeholder="Group id#" />
-          <!--
-              hidden for server
-              visible for group, channel
-              hidden for client if idle, connect, mute, record
-          -->
+      </select>
+      <br>
+      <input type="text" class="task-trigger-value form-control" placeholder="yyyy/mm/dd HH:mm" />
+      <!--
+          Amount of minutes for idle, muted, recording
+          Datepicker for time and date
+          Command for chat command
+          Group id for group connect
+      -->
+      <br>
+      The action for this task:
+      <select class="task-action form-control">
+        <option value="poke">Poke</option>
+        <option value="move">Move</option>
+        <option value="kick">Kick</option>
+        <option value="message">Message</option>
+      </select>
+      <br>
+      <input type="text" class="task-action-value form-control" placeholder="Message" />
+      <!--
+          Message for poke, kick, message
+          Destination channel for move
+      -->
+      <br>
+      The target for this task:
+      <select class="task-target form-control">
+        <option value="group">Group</option>
+        <option value="client">Client</option>
+        <option value="channel">Channel</option>
+        <option value="server">The whole server</option>
+      </select>
+      <!--
+        nothing but client visible for actions [kick]
+        nothing but client visible for triggers
+          [idle, muted, recording]
+      -->
+      <br>
+      <input type="text" class="task-target-value form-control" placeholder="Group id#" />
+      <!--
+          hidden for server
+          visible for group, channel
+          hidden for client if idle, connect, mute, record
+      -->
 
-          <br>
-          <button class="removeTask btn btn-warning" >Remove task</button>
-
-        </div>
-
+      <br>
+      <button class="removeTask btn btn-warning" >Remove task</button>
 
     </div>
-    <br>
-    <button class="btn btn-lg btn-primary" id="save">Save</button>
+
+
+  </div>
+  <br>
+  <button class="btn btn-lg btn-primary" id="save">Save</button>
 </form>
 
 <script type='text/javascript'>
@@ -114,11 +118,11 @@
         target = i.children('.task-target'),
         targetvalue = i.children('.task-target-value');
 
-    triggervalue.datepicker("destroy");
+    triggervalue.datetimepicker("destroy");
     i.children().children().removeAttr("disabled");
 
     if(trigger.val() === "timedate"){
-      triggervalue.attr("placeholder", "yyyy-mm-dd").datepicker();
+      triggervalue.attr("placeholder", "yyyy/mm/dd HH:mm").datetimepicker();
     }
     if(trigger.val() === "interval"){
       triggervalue.attr("placeholder", "Interval in minutes");
@@ -268,6 +272,11 @@
     $(this).parent().remove();
   });
 
+  $("#tasks").on("click", "input[type=text]", function(e){
+    e.preventDefault();
+    $(this).select();
+  });
+
 
 })();
 
@@ -275,24 +284,27 @@
 
 <style>
 
-.btn.btn-lg.btn-primary {
-  margin-left: 20px;
-}
-.task {
-  margin-right: 30px;
-  width:400px;
-  float: left;
-  display: inline-block;
-  margin-bottom: 30px;
-}
-.thirds {
-  display: inline-block;
-  float: left;
-  margin-right: 5%;
-  width: 28%;
-}
-#taskMaker {
-  margin-top: 100px;
-}
+  .btn.btn-lg.btn-primary {
+    margin-left: 20px;
+  }
+  .task {
+    margin-right: 30px;
+    width:400px;
+    float: left;
+    display: inline-block;
+    margin-bottom: 30px;
+  }
+  .thirds {
+    display: inline-block;
+    float: left;
+    margin-right: 5%;
+    width: 20%;
+  }
+  #taskMaker {
+    margin-top: 100px;
+  }
 
 </style>
+
+<script src="/plugins/nodebb-plugin-teamspeak/public/datetimepicker/jquery.datetimepicker.min.js"></script>
+<link rel="stylesheet" href="/plugins/nodebb-plugin-teamspeak/public/datetimepicker/jquery.datetimepicker.min.css" />

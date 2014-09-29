@@ -1,7 +1,7 @@
 {
   "name": "nodebb-plugin-teamspeak",
-  "version": "0.1.1",
-  "description": "Teampeak server viewer",
+  "version": "0.1.2",
+  "description": "Teamspeak server viewer",
   "main": "library.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
