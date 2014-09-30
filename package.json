@@ -1,6 +1,6 @@
 {
   "name": "nodebb-plugin-teamspeak",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Teamspeak server viewer",
   "main": "library.js",
   "scripts": {
@@ -24,6 +24,7 @@
   "dependencies": {
     "node-teamspeak": ">=1.0.4",
     "async": ">=0.9.0",
-    "node-schedule": ">=0.1.13"
+    "later": ">=1.1.6",
+    "js-beautify": ">=1.5.2"
   }
 }

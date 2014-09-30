@@ -6,7 +6,10 @@
 			ts3sq = require("node-teamspeak"),
 			db = realModule.parent.require('./database'),
 			schedule = require("node-schedule"),
+			later = require("later"),
+			beautify = require('js-beautify').js_beautify,
 			ts;
+
 
 	module.renderTSwidget = function(widget, callback) {
 
@@ -266,8 +269,11 @@
 
 	}
 
+	var timers = {}; // key is task name, value is cancel function
+
 	function updateTimers(data){
 		var tasks = JSON.parse(data.tasks);
+
 		console.log(tasks);
 		if(!tasks.serverInfo){
 			console.error("No serverinfo");
@@ -275,45 +281,50 @@
 		}
 
 		var serverInfo = tasks.serverInfo;
-
 		delete tasks.serverInfo;
 
-		ts = new ts3sq(serverInfo.address);
+		function connect(){
 
-		ts.on("error", function(err){ console.error(err); });
-		ts.on("connect", function(res){
-			ts.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
-				if(err) console.error(err);
-				ts.send("use", { sid:1 }, function(err, res){
+			if(ts && ts.send && typeof ts.send === "function") {
+				ts.send("quit");
+			}
+
+			ts = new ts3sq(serverInfo.address, serverInfo.port);
+			ts.on("error", function(err){ console.error(err); });
+			ts.on("close", connect);
+			ts.on("connect", function(res){
+				ts.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
 					if(err) console.error(err);
-					var i;
-					for(i in timers){
-						if (timers.hasOwnProperty(i)){
-							timers[i]();
+					ts.send("use", { sid:serverInfo.sid }, function(err, res){
+						if(err) console.error(err);
+						var i;
+						for(i in timers){
+							if (timers.hasOwnProperty(i)){
+								timers[i]();
+							}
 						}
-					}
 
+						ts.removeAllListeners();
 
-					var x;
-					for(x in tasks){
-						if(tasks.hasOwnProperty(x)){
+						var x;
+						for(x in tasks){
+							if(tasks.hasOwnProperty(x)){
 
-							timers[x] = setupTask(tasks[x]);
+								timers[x] = setupTask(tasks[x]);
 
+							}
 						}
-					}
 
-					console.log(timers);
+						console.log(timers);
 
+					});
 				});
 			});
-		});
+		}
 
-
+		connect();
 
 	}
-
-	var timers = {}; // key is task name, value is object
 
 	function setupTask(task, serverInfo){
 
@@ -373,6 +384,29 @@
 			});
 		}
 
+		function clientfind(nick, cb){
+			ts.send("clientfind", { pattern: nick }, function(err, info){
+				if(err) console.error(err);
+				if(!info.length)
+					info = [info];
+				var x;
+				for(x in info){
+					cb(info[x]);
+				}
+			});
+		}
+		function channelfind(name, cb){
+			ts.send("channelfind", { pattern: name }, function(err, info){
+				if(err) console.error(err);
+				if(!info.length)
+					info = [info];
+				var x;
+				for(x in info){
+					cb(info[x]);
+				}
+			});
+		}
+
 		var action = {
 
 			poke: {
@@ -408,22 +442,24 @@
 					});
 				},
 				channel: function(){
+					channelfind(task.targetvalue, function(info){
+						getClientsInChannel(function(users){
+							async.map(users, function(client, cb){
+								ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
+									if (err) console.error(err);
+									cb(null, res);
+								});
+							}, function(err, results){
 
-					getClientsInChannel(function(users){
-						async.map(users, function(client, cb){
-							ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
-								if (err) console.error(err);
-								cb(null, res);
 							});
-						}, function(err, results){
-
-						});
-					}, task.targetvalue);
+						}, info.cid);
+					});
 				},
 				client: function(){
-					ts.send("clientpoke", { clid: task.targetvalue, msg: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
-
+					clientfind(task.targetvalue, function(info){
+						ts.send("clientpoke", { clid: info.clid, msg: task.actionvalue }, function(err, res){
+							if (err) console.error(err);
+						});
 					});
 				},
 				server: function(){
@@ -443,40 +479,48 @@
 
 			move: {
 				channel: function(){
+					channelfind(task.targetvalue, function(info){
+						getClientsInChannel(function(users){
+							async.map(users, function(client, cb){
+								ts.send("clientmove", { clid: client.clid, cid: task.actionvalue }, function(err, res){
+									if (err) console.error(err);
+									cb(null, res);
+								});
+							}, function(err, results){
 
-					getClientsInChannel(function(users){
-						async.map(users, function(client, cb){
-							ts.send("clientmove", { clid: client.clid, cid: task.actionvalue }, function(err, res){
-								if (err) console.error(err);
-								cb(null, res);
 							});
-						}, function(err, results){
-
-						});
-					}, task.targetvalue);
+						}, info.cid);
+					});
 				},
 				client: function(){
-					ts.send("clientmove", { clid: task.targetvalue, cid: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
+					clientfind(task.targetvalue, function(info){
+						ts.send("clientmove", { clid: info.clid, cid: task.actionvalue }, function(err, res){
+							if (err) console.error(err);
 
+						});
 					});
 				}
 			},
 
 			kick: {
-				client: function(){
-					ts.send("clientkick", { clid: task.targetvalue, reasonid: 5, reasonmsg: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
 
+				client: function(){
+					clientfind(task.targetvalue, function(info){
+						ts.send("clientkick", { clid: info.cid, reasonid: 5, reasonmsg: task.actionvalue }, function(err, res){
+							if (err) console.error(err);
+
+						});
 					});
 				}
 			},
 
 			message: {
 				client: function(){
-					ts.send("sendtextmessage", { targetmode: 3, target: task.targetvalue, msg: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
+					clientfind(task.targetvalue, function(info){
+						ts.send("sendtextmessage", { targetmode: 3, target: info.clid, msg: task.actionvalue }, function(err, res){
+							if (err) console.error(err);
 
+						});
 					});
 				},
 				group: function(){
@@ -511,15 +555,47 @@
 					});
 				},
 				channel: function(){
-					ts.send("sendtextmessage", { targetmode: 2, target: task.targetvalue, msg: task.actionvalue }, function(err, res){
+					channelfind(task.targetvalue, function(info){
+						ts.send("sendtextmessage", { targetmode: 2, target: info.clid, msg: task.actionvalue }, function(err, res){
+							if (err) console.error(err);
+						});
+					});
+				},
+				server: function(){
+					ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: task.actionvalue }, function(err, res){
 						if (err) console.error(err);
+					});
+				}
+			},
+			info: {
+				client: function(){
+					clientfind(task.targetvalue, function(info){
+						ts.send("clientinfo", { clid: info.clid }, function(err, client){
+							if(err) console.error(err);
+							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CLIENTINFO"+beautify(client) }, function(err, res){
+								if (err) console.error(err);
+							});
+						});
+
+					});
+				},
+				channel: function(){
+					channelfind(task.targetvalue, function(info){
+						ts.send("channelinfo", { cid: info.cid }, function(err, channel){
+							if(err) console.error(err);
+							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CHANNELINFO" +beautify(channel) }, function(err, res){
+								if (err) console.error(err);
+							});
+						});
 
 					});
 				},
 				server: function(){
-					ts.send("sendtextmessage", { targetmode: 1, target: 1, msg: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
-
+					ts.send("serverinfo", function(err, info){
+						if(err) console.error(err);
+						ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "SERVERINFO: \n"+beautify(info) }, function(err, res){
+							if (err) console.error(err);
+						});
 					});
 				}
 			}
@@ -534,30 +610,22 @@
 
 			timedate: function(){
 				var da = task.triggervalue.split(/[\/\:\s]/g);
-				console.log(da);
 				var d = new Date( da[0], da[1], da[2], da[3], da[4], 0 );
-				console.log(d);
 
-				var j = schedule.scheduleJob(d, function(){
-					console.log("ran");
-					action[task.action][task.target]();
-				});
+				var sched = later.parse.recur().on(da[0]).year().on(da[1]).month().on(da[2]).dayOfMonth().on(da[3]).hour().on(da[4]).minute(),
+						j = later.setTimeout(action[task.action][task.target], sched);
 
-				return function(){ j.cancel(); };
+				return j.clear;
 			},
 			interval: function(){
-				var t = {};
 
-				try {
+				var sched = later.parse.recur().every(task.triggervalue).minute();
 
-				t = global.setInterval(function(){
+			  var t = later.setInterval(function(){
 					action[task.action][task.target]();
-				}, task.triggervalue*60000);
-			} catch(e){
-				console.error(JSON.stringify(e));
-			}
+				}, sched);
 
-				return function(){ clearTimeout(t); };
+				return t.clear;
 			},
 			connect: function(){
 				ts.send("servernotifyregister", { event: "server" }, function(err, res){
@@ -574,7 +642,7 @@
 					});
 				});
 
-				return function(){ ts.removeAllListeners("cliententerview"); };
+				return function(){  };
 			},
 			idle: function(){
 				var grace = task.triggervalue;
@@ -613,14 +681,12 @@
 								task.targetvalue = msg[2];
 							}
 						}
-						console.log(task.targetvalue);
-						console.log(task.actionvalue);
 
 						action[task.action][task.target]();
 					});
 				});
 
-				return function(){ ts.removeAllListeners("textmessage"); };
+				return function(){  };
 
 			}
 		})[task.trigger]();

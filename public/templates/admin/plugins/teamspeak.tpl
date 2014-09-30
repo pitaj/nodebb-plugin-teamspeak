@@ -10,7 +10,7 @@
     Server address: <input type="text" class="form-control" id="ts-address" placeholder="Enter server address" />
   </div>
   <div class="thirds">
-    Server posrt: <input type="text" class="form-control" id="ts-port" placeholder="default port is 10011" />
+    Server port: <input type="text" class="form-control" id="ts-port" placeholder="default port is 10011" />
   </div>
   <div class="thirds">
     Username: <input type="text" class="form-control" id="ts-username" placeholder="Enter serverquery username" />
@@ -65,6 +65,7 @@
         <option value="move">Move</option>
         <option value="kick">Kick</option>
         <option value="message">Message</option>
+        <option value="info">Information</option>
       </select>
       <br>
       <input type="text" class="task-action-value form-control" placeholder="Message" />
@@ -143,12 +144,16 @@
     if(action.val() === "kick"){
       target.children().filter(function(){ return this.value !== "client"; }).attr("disabled", true);
       target.val("client");
+      actionvalue.css("display", "").attr("placeholder", "Message text");
     }
     if(action.val() === "poke" || action.val() === "kick" || action.val() === "message"){
-      actionvalue.attr("placeholder", "Message text");
+      actionvalue.css("display", "").attr("placeholder", "Message text");
     }
     if(action.val() === "move") {
-      actionvalue.attr("placeholder", "Destination channel");
+      actionvalue.css("display", "").attr("placeholder", "Destination channel");
+    }
+    if(target.val() === "info"){
+      actionvalue.css("display", "none");
     }
 
 
@@ -213,7 +218,8 @@
     var serverInfo = {
       address: $("#ts-address").val(),
       username: $("#ts-username").val(),
-      password: $("#ts-password").val()
+      password: $("#ts-password").val(),
+      port: $("#ts-port").val()
     }
 
     if(!tasks && !(serverInfo.address && serverInfo.username && serverInfo.password)) return false;
@@ -240,6 +246,7 @@
       $("#ts-address").val(tasks.serverInfo.address);
       $("#ts-username").val(tasks.serverInfo.username);
       $("#ts-password").val(tasks.serverInfo.password);
+      $("#ts-port").val(tasks.serverInfo.port);
       delete tasks.serverInfo;
     }
 
@@ -307,4 +314,3 @@
 </style>
 
 <script src="/plugins/nodebb-plugin-teamspeak/public/datetimepicker/jquery.datetimepicker.min.js"></script>
-<link rel="stylesheet" href="/plugins/nodebb-plugin-teamspeak/public/datetimepicker/jquery.datetimepicker.min.css" />
