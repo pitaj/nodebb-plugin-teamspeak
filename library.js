@@ -5,7 +5,6 @@
 	    path = require("path"),
 			ts3sq = require("node-teamspeak"),
 			db = realModule.parent.require('./database'),
-			schedule = require("node-schedule"),
 			later = require("later"),
 			beautify = require('js-beautify').js_beautify,
 			ts;
