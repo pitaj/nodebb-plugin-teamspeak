@@ -18,6 +18,9 @@
   <div class="thirds">
     Password: <input type="text" class="form-control" id="ts-password" placeholder="Enter serverquery password" />
   </div>
+  <div class="thirds">
+    Server ID: <input type="text" class="form-control" id="ts-sid" placeholder="Virtualserver id #" />
+  </div>
 
 </form>
 
@@ -126,7 +129,7 @@
       triggervalue.attr("placeholder", "yyyy/mm/dd HH:mm").datetimepicker();
     }
     if(trigger.val() === "interval"){
-      triggervalue.attr("placeholder", "Interval in minutes");
+      triggervalue.attr("placeholder", "Interval in HH:mm:s");
     }
     if(trigger.val() === "connect"){
       triggervalue.attr("placeholder", "Group id#");
@@ -164,7 +167,7 @@
       targetvalue.css("display", "").attr("placeholder", "Group id#");
     }
     if(target.val() === "channel"){
-      targetvalue.css("display", "").attr("placeholder", "Channel id#");
+      targetvalue.css("display", "").attr("placeholder", "Channel name");
     }
 
     if(target.val() === "client"){
@@ -219,8 +222,11 @@
       address: $("#ts-address").val(),
       username: $("#ts-username").val(),
       password: $("#ts-password").val(),
-      port: $("#ts-port").val()
+      port: $("#ts-port").val(),
+      sid: $("#ts-sid").val()
     }
+
+    console.warn(serverInfo);
 
     if(!tasks && !(serverInfo.address && serverInfo.username && serverInfo.password)) return false;
 
@@ -247,6 +253,10 @@
       $("#ts-username").val(tasks.serverInfo.username);
       $("#ts-password").val(tasks.serverInfo.password);
       $("#ts-port").val(tasks.serverInfo.port);
+      $("#ts-sid").val(tasks.serverInfo.sid);
+
+      console.error(tasks.serverInfo);
+
       delete tasks.serverInfo;
     }
 
@@ -305,7 +315,7 @@
     display: inline-block;
     float: left;
     margin-right: 5%;
-    width: 20%;
+    width: 15%;
   }
   #taskMaker {
     margin-top: 100px;

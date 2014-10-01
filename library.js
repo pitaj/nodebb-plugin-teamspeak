@@ -1,5 +1,7 @@
 (function(module, realModule) {
 
+	"use strict";
+
 	var fs = require("fs"),
 			async = require('async'),
 	    path = require("path"),
@@ -8,6 +10,8 @@
 			later = require("later"),
 			beautify = require('js-beautify').js_beautify,
 			ts;
+
+	later.date.localTime();
 
 
 	module.renderTSwidget = function(widget, callback) {
@@ -19,7 +23,7 @@
 			name: widget.data.name,
 			sqaddress: widget.data.sqaddress,
 			sqport: widget.data.sqport,
-			sid: widget.data.sid
+			sid: widget.data.sid || 1
 		};
 
 		var tsw = new ts3sq(serverInfo.sqaddress, serverInfo.sqport);
@@ -27,9 +31,9 @@
     tsw.on("error", function(err){ console.error(err); });
     tsw.on("connect", function(res){
       tsw.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
-        if(err) console.error(err);
-        tsw.send("use", { sid:serverInfo.sid }, function(err, res){
-          if(err) console.error(err);
+        if(err) { console.error(err); }
+         tsw.send("use", { sid:serverInfo.sid }, function(err, res){
+          if(err) { console.error(err); }
 
 					function HTMLresponse(obj, clients){
 			      //console.log(JSON.stringify(obj));
@@ -38,7 +42,7 @@
 			      var online_clients = [];
 
 			      for(var z=0; z<clients.length; z++){
-			        if(clients[z].client_type == 0 && clients[z].client_away == 0){
+			        if(!clients[z].client_type && !clients[z].client_away){
 			          online_clients.push(clients[z]);
 			        }
 			      }
@@ -49,62 +53,76 @@
 			        "ts3-server-name": serverInfo.name || "Teamspeak Server",
 			        "ts3-address" : serverInfo.address,
 			        "ts3-tree": cycle(obj),
-			      }
+			      };
 
 						if(!widget.data.showtree){
-							rep["ts3-tree"] = "<!-- tree hidden -->"
+							rep["ts3-tree"] = "<!-- tree hidden -->";
 						}
-
-			      for(var x in rep){
-			        pre = pre.replace(new RegExp("{{"+x+"}}", "g"), rep[x]);
+						var x;
+			      for(x in rep){
+							if(rep.hasOwnProperty(x)){
+			        	pre = pre.replace(new RegExp("{{"+x+"}}", "g"), rep[x]);
+							}
 			      }
 
 			      function cycle(o){
 			        var html = "";
-			        for(var x in o){
-			          html += "<div class='channel";
-			          var spacerI = o[x].channel_name.match(/\[[lrcLRC]*spacer[0-9]*\]/);
-			          //console.log(spacerI);
-			          o[x].channel_name = o[x].channel_name.replace(/\[[lrcLRC]*spacer[0-9]*\]/, '');
-			          if(spacerI){
-			            html += " "+spacerI[0].replace('[', '').replace(']','');
-			            switch(o[x].channel_name){
-			              case "___":
-			                html += " solidline";
-			                break;
-			              case "---":
-			                html += " dashline";
-			                break;
-			              case "...":
-			                html += " dotline";
-			                break;
-			              case "-.-":
-			                html += " dashdotline";
-			                break;
-			              case "-..":
-			                html += " dashdotdotline";
-			                break;
-			            }
-			          }
-			          html += "'><div class='channel_name'>"+o[x].channel_name+"</div>";
-			          if(o[x].users)
-			            for(var i=0; i< o[x].users.length; i++){
-			              var client = o[x].users[i];
-			              if(client.client_type == 0){
-			                html += "<div class='client";
-			                var a = (""+client.client_servergroups).split(',');
-			                for(var c =0; c<a.length; c++){
-			                  html += " servergroup"+a[c];
-			                }
-			                if(client.client_away) html += " away";
-			                if(client.client_input_muted) html += " inputmuted";
-			                if(client.client_output_muted) html += " outputmuted";
-			                html+= "' >"+o[x].users[i].client_nickname+"</div>";
-			              }
-			            }
-			          if(o[x].subChannels)
-			            html += cycle(o[x].subChannels);
-			          html += "</div>";
+			        var x;
+							for(x in o){
+								if(obj.hasOwnProperty(x)){
+									html += "<div class='channel";
+									var spacerI = o[x].channel_name.match(/\[[lrcLRC]*spacer[0-9]*\]/);
+									//console.log(spacerI);
+									o[x].channel_name = o[x].channel_name.replace(/\[[lrcLRC]*spacer[0-9]*\]/, '');
+									if(spacerI){
+										html += " "+spacerI[0].replace('[', '').replace(']','');
+										switch(o[x].channel_name){
+											case "___":
+												html += " solidline";
+												break;
+											case "---":
+												html += " dashline";
+												break;
+											case "...":
+												html += " dotline";
+												break;
+											case "-.-":
+												html += " dashdotline";
+												break;
+											case "-..":
+												html += " dashdotdotline";
+												break;
+										}
+									}
+									html += "'><div class='channel_name'>"+o[x].channel_name+"</div>";
+									if(o[x].users){
+										for(var i=0; i< o[x].users.length; i++){
+											var client = o[x].users[i];
+											if(!client.client_type){
+												html += "<div class='client";
+												var a = (""+client.client_servergroups).split(',');
+												for(var c =0; c<a.length; c++){
+													html += " servergroup"+a[c];
+												}
+												if(client.client_away) {
+													html += " away";
+												}
+												if(client.client_input_muted){
+													html += " inputmuted";
+												}
+												if(client.client_output_muted) {
+													html += " outputmuted";
+												}
+												html+= "' >"+o[x].users[i].client_nickname+"</div>";
+											}
+										}
+									}
+									if(o[x].subChannels){
+										html += cycle(o[x].subChannels);
+									}
+
+									html += "</div>";
+								}
 
 			        }
 
@@ -117,20 +135,20 @@
 
 			    function getChannelsAndClients(callback){
 			      tsw.send("clientlist", function(err, clients){
-			        if(err) console.error(err);
+			        if(err) {console.error(err);}
 			        //console.log(clients);
 			        tsw.send("channellist", function(err, channels){
-			          if(err) console.error(err);
+			          if(err) {console.error(err);}
 			          //console.log(util.inspect(channels));
 			          var cascade = [];
 			          function find(arr, cid){
 			            for(var x=0; x < arr.length; x++){
 
-			              if(arr[x].cid == cid){
+			              if(arr[x].cid === cid){
 			                return arr[x];
 			              } else if(arr[x].subChannels) {
 			                var out = find(arr[x].subChannels, cid);
-			                if(out) return out;
+			                if(out) {return out;}
 			              }
 			            }
 			          }
@@ -138,14 +156,14 @@
 			          for(var i=0; i<channels.length; i++){
 			            var it = find(cascade, channels[i].pid);
 			            if(it){
-			              if(!it.subChannels) it.subChannels = [];
+			              if(!it.subChannels) {it.subChannels = [];}
 			              it.subChannels.push(channels[i]);
 			            } else {
 			              cascade.push(channels[i]);
 			            }
 			          }
 
-			          if(!clients.length) clients = [clients];
+			          if(!clients.length) {clients = [clients];}
 
 			          //console.log(clients[0]);
 			          //console.log(clients);
@@ -158,12 +176,12 @@
 
 			            tsw.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
 
-			              if(err) console.error(err);
+			              if(err) {console.error(err);}
 
 			              clientsinfo.push(clientinfo);
 			              var it = find(cascade, client.cid);
 			              if(it){
-			                if(!it.users) it.users = [];
+			                if(!it.users) {it.users = [];}
 			                it.users.push(clientinfo);
 			              }
 
@@ -172,7 +190,7 @@
 			            });
 			          }, function(err, results){
 									tsw.send("quit");
-			            if(callback) callback(cascade, clientsinfo);
+			            if(callback) {callback(cascade, clientsinfo);}
 								});
 			        });
 			      });
@@ -250,10 +268,14 @@
 
 			res.render(path, data);
 		});
-	};
+	}
 
-	function renderAdmin (req, res, next) { render( res, next, 'admin/plugins/teamspeak' ) };
-	function renderFront (req, res, next) { render( res, next, 'plugins/teamspeak' ) };
+	function renderAdmin (req, res, next) {
+		render( res, next, 'admin/plugins/teamspeak' );
+	}
+	function renderFront (req, res, next) {
+		render( res, next, 'plugins/teamspeak' );
+	}
 
 	function save (req, res, next) {
 
@@ -280,6 +302,7 @@
 		}
 
 		var serverInfo = tasks.serverInfo;
+		serverInfo.sid = serverInfo.sid || 1;
 		delete tasks.serverInfo;
 
 		function connect(){
@@ -293,9 +316,9 @@
 			ts.on("close", connect);
 			ts.on("connect", function(res){
 				ts.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
-					if(err) console.error(err);
-					ts.send("use", { sid:serverInfo.sid }, function(err, res){
-						if(err) console.error(err);
+					if(err) {console.error(err);}
+					ts.send("use", { sid: serverInfo.sid }, function(err, res){
+						if(err) {console.error(err);}
 						var i;
 						for(i in timers){
 							if (timers.hasOwnProperty(i)){
@@ -329,37 +352,37 @@
 
 		function getClientsInChannel(callback, channelid){
 			ts.send("clientlist", function(err, clients){
-				if(err) console.error(err);
+				if(err) {console.error(err);}
 				ts.send("channellist", function(err, channels){
-					if(err) console.error(err);
+					if(err) {console.error(err);}
 					var cascade = [];
 					function find(arr, cid){
 						for(var x=0; x < arr.length; x++){
-							if(arr[x].cid == cid){
+							if(arr[x].cid === cid){
 								return arr[x];
 							} else if(arr[x].subChannels) {
 								var out = find(arr[x].subChannels, cid);
-								if(out) return out;
+								if(out) {return out;}
 							}
 						}
 					}
 					for(var i=0; i<channels.length; i++){
 						var it = find(cascade, channels[i].pid);
 						if(it){
-							if(!it.subChannels) it.subChannels = [];
+							if(!it.subChannels) {it.subChannels = [];}
 							it.subChannels.push(channels[i]);
 						} else {
 							cascade.push(channels[i]);
 						}
 					}
-					if(!clients.length) clients = [clients];
+					if(!clients.length) {clients = [clients];}
 
-					for(var i=0; i<clients.length; i++){
-						if(clients[i].client_type == 0){
-							var it = find(cascade, clients[i].cid);
-							if(it){
-								if(!it.users) it.users = [];
-								it.users.push(clients[i]);
+					for(var c=0; c<clients.length; i++){
+						if(!clients[i].client_type){
+							var iti = find(cascade, clients[c].cid);
+							if(iti){
+								if(!iti.users) {iti.users = [];}
+								iti.users.push(clients[c]);
 							}
 						}
 					}
@@ -372,7 +395,7 @@
 						if(arr.subChannels) {
 							for(var x=0; x < arr.subChannels.length; x++){
 								var out = gatherUsers(arr.subChannels);
-								if(out) usersInChannel = usersInChannel.concat(out);
+								if(out) {usersInChannel = usersInChannel.concat(out);}
 							}
 						}
 						return usersInChannel;
@@ -385,23 +408,27 @@
 
 		function clientfind(nick, cb){
 			ts.send("clientfind", { pattern: nick }, function(err, info){
-				if(err) console.error(err);
-				if(!info.length)
+				if(err) {console.error(err);}
+				if(!info.length){
 					info = [info];
+				}
 				var x;
 				for(x in info){
-					cb(info[x]);
+					if(info.hasOwnProperty(x)){
+						cb(info[x]);
+					}
 				}
 			});
 		}
 		function channelfind(name, cb){
 			ts.send("channelfind", { pattern: name }, function(err, info){
-				if(err) console.error(err);
-				if(!info.length)
-					info = [info];
+				if(err) {console.error(err);}
+				if(!info.length) {info = [info];}
 				var x;
 				for(x in info){
-					cb(info[x]);
+					if(info.hasOwnProperty(x)){
+						cb(info[x]);
+					}
 				}
 			});
 		}
@@ -411,23 +438,23 @@
 			poke: {
 				group: function(){
 					ts.send("clientlist", function(err, clients){
-						if(!clients.length) clients = [clients];
+						if(!clients.length) {clients = [clients];}
 		        var len = clients.length;
 		        async.map(clients, function(client, cb){
 		          ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
-		            if(err) console.error(err);
+		            if(err) {console.error(err);}
 								var groups = (""+clientinfo.client_servergroups).split(',');
 
 								var match = false;
 								for(var i=0; i<groups.length; i++){
-									if(groups[i] == task.targetvalue){
+									if(groups[i] === task.targetvalue){
 										match = true;
 									}
 								}
 
 								if(match){
 									ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
-										if (err) console.error(err);
+										if (err) {console.error(err);}
 										cb(null, match);
 									});
 								} else {
@@ -445,7 +472,7 @@
 						getClientsInChannel(function(users){
 							async.map(users, function(client, cb){
 								ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
-									if (err) console.error(err);
+									if (err) {console.error(err);}
 									cb(null, res);
 								});
 							}, function(err, results){
@@ -457,16 +484,21 @@
 				client: function(){
 					clientfind(task.targetvalue, function(info){
 						ts.send("clientpoke", { clid: info.clid, msg: task.actionvalue }, function(err, res){
-							if (err) console.error(err);
+							if (err) {console.error(err);}
 						});
 					});
 				},
 				server: function(){
 					ts.send("clientlist", function(err, clients){
-						if(!clients.length) clients = [clients];
+						if(err) {console.error(err);}
+						if(!clients){
+							console.error([clients, "not exist"]);
+							return;
+						}
+						if(!clients.length) {clients = [clients];}
 						async.map(clients, function(client, cb){
 							ts.send("clientpoke", { clid: client.clid, msg: task.actionvalue }, function(err, res){
-								if (err) console.error(err);
+								if (err) {console.error(err);}
 								cb(null, res);
 							});
 						}, function(){
@@ -482,7 +514,7 @@
 						getClientsInChannel(function(users){
 							async.map(users, function(client, cb){
 								ts.send("clientmove", { clid: client.clid, cid: task.actionvalue }, function(err, res){
-									if (err) console.error(err);
+									if (err) {console.error(err);}
 									cb(null, res);
 								});
 							}, function(err, results){
@@ -494,7 +526,7 @@
 				client: function(){
 					clientfind(task.targetvalue, function(info){
 						ts.send("clientmove", { clid: info.clid, cid: task.actionvalue }, function(err, res){
-							if (err) console.error(err);
+							if (err) {console.error(err);}
 
 						});
 					});
@@ -506,7 +538,7 @@
 				client: function(){
 					clientfind(task.targetvalue, function(info){
 						ts.send("clientkick", { clid: info.cid, reasonid: 5, reasonmsg: task.actionvalue }, function(err, res){
-							if (err) console.error(err);
+							if (err) {console.error(err);}
 
 						});
 					});
@@ -517,30 +549,30 @@
 				client: function(){
 					clientfind(task.targetvalue, function(info){
 						ts.send("sendtextmessage", { targetmode: 3, target: info.clid, msg: task.actionvalue }, function(err, res){
-							if (err) console.error(err);
+							if (err) {console.error(err);}
 
 						});
 					});
 				},
 				group: function(){
 					ts.send("clientlist", function(err, clients){
-						if(!clients.length) clients = [clients];
+						if(!clients.length) {clients = [clients];}
 						var len = clients.length;
 						async.map(clients, function(client, cb){
 							ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
-								if(err) console.error(err);
+								if(err) {console.error(err);}
 								var groups = (""+clientinfo.client_servergroups).split(',');
 
 								var match = false;
 								for(var i=0; i<groups.length; i++){
-									if(groups[i] == task.targetvalue){
+									if(groups[i] === task.targetvalue){
 										match = true;
 									}
 								}
 
 								if(match){
 									ts.send("sendtextmessage", { targetmode: 3, target: client.clid, msg: task.actionvalue }, function(err, res){
-										if (err) console.error(err);
+										if (err) {console.error(err);}
 										cb(null, match);
 									});
 								} else {
@@ -556,13 +588,13 @@
 				channel: function(){
 					channelfind(task.targetvalue, function(info){
 						ts.send("sendtextmessage", { targetmode: 2, target: info.clid, msg: task.actionvalue }, function(err, res){
-							if (err) console.error(err);
+							if (err) {console.error(err);}
 						});
 					});
 				},
 				server: function(){
 					ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: task.actionvalue }, function(err, res){
-						if (err) console.error(err);
+						if (err) {console.error(err);}
 					});
 				}
 			},
@@ -570,9 +602,9 @@
 				client: function(){
 					clientfind(task.targetvalue, function(info){
 						ts.send("clientinfo", { clid: info.clid }, function(err, client){
-							if(err) console.error(err);
-							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CLIENTINFO"+beautify(client) }, function(err, res){
-								if (err) console.error(err);
+							if(err) {console.error(err);}
+							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CLIENTINFO:\n"+JSON.stringify(beautify(client)) }, function(err, res){
+								if (err){ console.error(err);}
 							});
 						});
 
@@ -581,9 +613,9 @@
 				channel: function(){
 					channelfind(task.targetvalue, function(info){
 						ts.send("channelinfo", { cid: info.cid }, function(err, channel){
-							if(err) console.error(err);
-							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CHANNELINFO" +beautify(channel) }, function(err, res){
-								if (err) console.error(err);
+							if(err) {console.error(err);}
+							ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "CHANNELINFO:\n" +JSON.stringify(beautify(channel)) }, function(err, res){
+								if (err) {console.error(err);}
 							});
 						});
 
@@ -591,50 +623,69 @@
 				},
 				server: function(){
 					ts.send("serverinfo", function(err, info){
-						if(err) console.error(err);
-						ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "SERVERINFO: \n"+beautify(info) }, function(err, res){
-							if (err) console.error(err);
+						if(err) {console.error(err);}
+						ts.send("sendtextmessage", { targetmode: 1, target: serverInfo.sid, msg: "SERVERINFO: \n"+JSON.stringify(beautify(info)) }, function(err, res){
+							if (err) {console.error(err);}
 						});
 					});
 				}
 			}
-		}
+		};
 
 		if(!(task.trigger === "timedate" || task.trigger === "interval"  ||
 				  task.trigger === "connect" || task.trigger === "idle" 		 ||
 						task.trigger === "muted" || task.trigger === "recording" ||
-						task.trigger === "chatcommand")) return false;
+						task.trigger === "chatcommand")) {return false;}
 
 		return ({
 
 			timedate: function(){
 				var da = task.triggervalue.split(/[\/\:\s]/g);
-				var d = new Date( da[0], da[1], da[2], da[3], da[4], 0 );
+				//var d = new Date( da[0], da[1], da[2], da[3], da[4], 0 );
 
-				var sched = later.parse.recur().on(da[0]).year().on(da[1]).month().on(da[2]).dayOfMonth().on(da[3]).hour().on(da[4]).minute(),
-						j = later.setTimeout(action[task.action][task.target], sched);
+				console.log(da);
+
+				var sched = later.parse.recur().on(da[0]*1).year().on(da[1]*1).month().on(da[2]*1).dayOfMonth().on(da[3]*1).hour().on(da[4]*1).minute();
+
+				console.log(beautify(JSON.stringify(sched)));
+
+				function func(){
+					try {
+						action[task.action][task.target]();
+					} catch(e){
+						console.error(e);
+					}
+				}
+
+				var j = later.setTimeout(func, sched);
 
 				return j.clear;
 			},
 			interval: function(){
 
-				var sched = later.parse.recur().every(task.triggervalue).minute();
+				var da = task.triggervalue.split(/\:/g);
 
-			  var t = later.setInterval(function(){
+				console.log(da);
+
+				var sched = da[0]*60*60*1000 + da[1]*60*1000 + da[2]*1000;
+
+				console.log(beautify(JSON.stringify(sched)));
+
+			  var t = setInterval(function(){
 					action[task.action][task.target]();
 				}, sched);
 
-				return t.clear;
+				return function(){ clearInterval(t); };
 			},
 			connect: function(){
 				ts.send("servernotifyregister", { event: "server" }, function(err, res){
-					if(err) console.error(err);
+					if(err) {console.error(err);}
 					ts.addListener("cliententerview", function(client){
 						var groups = (""+client.client_servergroups).split(',');
 						var match = false;
 
 						for(var i=0; i<groups.length; i++){
-							if(groups[i] == task.triggervalue){
+							if(groups[i] === task.triggervalue){
 								action[task.action][task.target]();
 							}
 						}
@@ -660,7 +711,7 @@
 				var com = command.match(/\{\{[a-zA-Z0-9]+\}\}/g);
 
 				ts.send("servernotifyregister", { event: "textserver" }, function(err, res){
-					if(err) console.error(err);
+					if(err) {console.error(err);}
 
 					ts.addListener("textmessage", function(info){
 						var msg = info.msg;
@@ -684,12 +735,8 @@
 						action[task.action][task.target]();
 					});
 				});
-
 				return function(){  };
-
 			}
 		})[task.trigger]();
-
 	}
-
 }(module.exports, module));
