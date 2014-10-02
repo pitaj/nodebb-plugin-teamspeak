@@ -103,7 +103,7 @@
 			err ? res.json(500, 'Error while saving settings') : res.json('Settings successfully saved');
 		});
 
-		updateTimers(JSON.parse(data.tasks));
+		updateTimers({ tasks: JSON.parse(data.tasks) });
 
 	}
 
@@ -115,6 +115,7 @@
 		var tasks = data.tasks;
 
 		console.log(tasks);
+		console.log(data);
 		if(!tasks.serverInfo){
 			console.error("No serverinfo");
 			return false;
