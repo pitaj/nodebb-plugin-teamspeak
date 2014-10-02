@@ -21,6 +21,9 @@
   <div class="thirds">
     Server ID: <input type="text" class="form-control" id="ts-sid" placeholder="Virtualserver id #" />
   </div>
+  <div class="thirds">
+    Query name: <input type="text" class="form-control" id="ts-queryname" placeholder="For pokes and messages" />
+  </div>
 
 </form>
 
@@ -34,12 +37,18 @@
       Time and date actions will occur at noon machine time.
       </p>
     <button class="btn" id="addTask">Add task</button>
+    <button class="btn btn-lg btn-primary" id="save">Save All</button>
     <br><br>
 
     <div id="defaulttask" style="display:none">
 
-      <strong>Name: <input type="text" class="task-name form-control" placeholder="Task name"/></strong>
-      <br>
+      <strong>
+        Name: <input type="text" class="task-name form-control" placeholder="Task name"/>
+        <br>
+        Enabled: <input type="checkbox" class="task-enabled"/>
+      </strong>
+      <br/>
+      <br/>
 
       The trigger for this class:
       <select class="task-trigger form-control">
@@ -105,7 +114,6 @@
 
   </div>
   <br>
-  <button class="btn btn-lg btn-primary" id="save">Save</button>
 </form>
 
 <script type='text/javascript'>
@@ -147,34 +155,34 @@
     if(action.val() === "kick"){
       target.children().filter(function(){ return this.value !== "client"; }).attr("disabled", true);
       target.val("client");
-      actionvalue.css("display", "").attr("placeholder", "Message text");
+      actionvalue.css("visibility", "").attr("placeholder", "Message text");
     }
     if(action.val() === "poke" || action.val() === "kick" || action.val() === "message"){
-      actionvalue.css("display", "").attr("placeholder", "Message text");
+      actionvalue.css("visibility", "").attr("placeholder", "Message text");
     }
     if(action.val() === "move") {
-      actionvalue.css("display", "").attr("placeholder", "Destination channel");
+      actionvalue.css("visibility", "").attr("placeholder", "Destination channel");
     }
-    if(target.val() === "info"){
-      actionvalue.css("display", "none");
+    if(action.val() === "info"){
+      actionvalue.css("visibility", "hidden");
     }
 
 
     if(target.val() === "server"){
-      targetvalue.css("display", "none");
+      targetvalue.css("visibility", "hidden");
     }
     if(target.val() === "group") {
-      targetvalue.css("display", "").attr("placeholder", "Group id#");
+      targetvalue.css("visibility", "").attr("placeholder", "Group id#");
     }
     if(target.val() === "channel"){
-      targetvalue.css("display", "").attr("placeholder", "Channel name");
+      targetvalue.css("visibility", "").attr("placeholder", "Channel name");
     }
 
     if(target.val() === "client"){
       if(trigger.val() === "idle" || trigger.val() === "muted" || trigger.val() === "recording" || trigger.val() === "connect"){
-        targetvalue.css("display", "none");
+        targetvalue.css("visibility", "hidden");
       } else {
-        targetvalue.css("display", "").attr("placeholder", "Client nickname");
+        targetvalue.css("visibility", "").attr("placeholder", "Client nickname");
       }
     }
   });
@@ -186,7 +194,7 @@
       var task = $(this);
       var name = task.find(".task-name").val();
 
-      tasks[name] = {
+      var thistask = {
         trigger: task.children(".task-trigger").val(),
         triggervalue: task.children(".task-trigger-value").val(),
         action: task.children(".task-action").val(),
@@ -194,6 +202,14 @@
         target: task.children(".task-target").val(),
         targetvalue: task.children(".task-target-value").val()
       };
+      var enabled = task.find(".task-enabled").prop("checked");
+
+      if(enabled){
+        tasks[name] = thistask;
+      } else {
+        tasks.disabled[name] = thistask;
+      }
+
     });
 
     console.log(tasks);
@@ -223,12 +239,13 @@
       username: $("#ts-username").val(),
       password: $("#ts-password").val(),
       port: $("#ts-port").val(),
-      sid: $("#ts-sid").val()
-    }
+      sid: $("#ts-sid").val(),
+      queryname: $("#ts-queryname").val()
+    };
 
     console.warn(serverInfo);
 
-    if(!tasks && !(serverInfo.address && serverInfo.username && serverInfo.password)) return false;
+    if(!tasks && !(serverInfo.address && serverInfo.username && serverInfo.password)) {return false;}
 
     tasks.serverInfo = serverInfo;
 
@@ -237,7 +254,7 @@
         tasks : JSON.stringify(tasks)
     }, function(data) {
         if(typeof data === 'string') {
-            app.alertSuccess(data);
+          app.alertSuccess(data);
         }
     });
 
@@ -254,27 +271,45 @@
       $("#ts-password").val(tasks.serverInfo.password);
       $("#ts-port").val(tasks.serverInfo.port);
       $("#ts-sid").val(tasks.serverInfo.sid);
+      $("#ts-queryname").val(tasks.serverInfo.queryname);
 
       console.error(tasks.serverInfo);
 
       delete tasks.serverInfo;
     }
 
-    var x;
+    var x, newTask;
     for(x in tasks){
       if(tasks.hasOwnProperty(x)){
-        var newTask = addTask();
+        newTask = addTask();
 
         newTask.find(".task-name").val(x);
         newTask.children(".task-trigger").val(tasks[x].trigger);
         newTask.children(".task-trigger-value").val(tasks[x].triggervalue);
-        newTask.children(".task-trigger-repeat").val(tasks[x].triggerrepeat)
         newTask.children(".task-action").val(tasks[x].action);
         newTask.children(".task-action-value").val(tasks[x].actionvalue);
         newTask.children(".task-target").val(tasks[x].target);
         newTask.children(".task-target-value").val(tasks[x].targetvalue);
+        newTask.find(".task-enabled").attr("checked", true);
 
         newTask.children("select").trigger("change");
+      }
+    }
+    if(tasks.disabled){
+      for(x in tasks.disabled){
+        if(tasks.disabled.hasOwnProperty(x)){
+          newTask = addTask();
+
+          newTask.find(".task-name").val(x);
+          newTask.children(".task-trigger").val(tasks[x].trigger);
+          newTask.children(".task-trigger-value").val(tasks[x].triggervalue);
+          newTask.children(".task-action").val(tasks[x].action);
+          newTask.children(".task-action-value").val(tasks[x].actionvalue);
+          newTask.children(".task-target").val(tasks[x].target);
+          newTask.children(".task-target-value").val(tasks[x].targetvalue);
+
+          newTask.children("select").trigger("change");
+        }
       }
     }
   });
@@ -305,22 +340,26 @@
     margin-left: 20px;
   }
   .task {
-    margin-right: 30px;
-    width:400px;
+    margin-right: 2%;
+    width: 30%;
     float: left;
     display: inline-block;
     margin-bottom: 30px;
+    height: 570px;
   }
   .thirds {
     display: inline-block;
     float: left;
-    margin-right: 5%;
-    width: 15%;
+    margin-right: 2%;
+    width: 14%;
   }
   #taskMaker {
     margin-top: 100px;
   }
 
+  #save {
+    float:right;
+  }
 </style>
 
 <script src="/plugins/nodebb-plugin-teamspeak/public/datetimepicker/jquery.datetimepicker.min.js"></script>
