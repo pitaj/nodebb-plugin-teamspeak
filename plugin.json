@@ -8,8 +8,8 @@
         "public": "public"
     },
     "hooks": [
-        { "hook": "filter:admin.header.build", "method": "addAdminNavigation"},
-        { "hook": "static:app.load", "method": "init"}
+        { "hook": "filter:admin.header.build", "method": "addAdminNavigation" },
+        { "hook": "static:app.load", "method": "init" }
     ],
     "css": [
       "public/datetimepicker/jquery.datetimepicker.min.css"
