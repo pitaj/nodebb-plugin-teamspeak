@@ -190,6 +190,7 @@
   function collectData(){
 
     var tasks = {};
+    tasks.disabled = {};
     $(".task").each(function(){
       var task = $(this);
       var name = task.find(".task-name").val();
