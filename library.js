@@ -111,6 +111,10 @@
 
 	var MYID = "";
 
+	var clientsIdleMuted = {}; // object of client clids and time been away, muted
+
+	var checkIdleMutedInterval = 500;
+
 	function updateTimers(data){
 		var tasks = data.tasks;
 
@@ -135,13 +139,13 @@
 
 			ts = new ts3sq(serverInfo.address, serverInfo.port);
 			ts.on("error", function(err){ console.error(err); });
-			ts.on("close", connect);
+			ts.on("close", function(){ setTimeout(connect, 1000); });
 			ts.on("connect", function(res){
 				ts.send("login", { client_login_name: serverInfo.username, client_login_password: serverInfo.password }, function(err, res){
 					if(err) {console.error(err);}
 					ts.send("use", { sid: serverInfo.sid }, function(err, res){
 						if(err) {console.error(err); }
-						ts.send("clientupdate", {client_nickname: serverInfo.queryname}, function(err, res){
+						ts.send("clientupdate", { client_nickname: serverInfo.queryname }, function(err, res){
 							if(err) {console.error(err);}
 							ts.send("clientfind", { pattern: serverInfo.queryname }, function(err, info){
 								if(err) { console.error(err); }
@@ -165,6 +169,8 @@
 									}
 								}
 
+								timers.idlemute = checkIdleMuted();
+
 							});
 						});
 					});
@@ -173,6 +179,75 @@
 		}
 
 		connect();
+
+		function checkIdleMuted(){
+
+			var currentcim = {};
+
+			var timer;
+
+			ts.send("clientlist", function(err, clients){
+				if(err){ console.error(err); }
+				if(!clients){
+					setTimeout(checkIdleMuted, checkIdleMutedInterval);
+				}
+				if(!clients.length){ clients = [clients]; }
+				async.map(clients, function(client, cb){
+
+					ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
+
+						if(err) {console.error(err);}
+
+
+						currentcim[client.clid] = {
+							away: (clientinfo.client_away*1) ? true : false,
+							muted: (clientinfo.client_input_muted*1) && (clientinfo.client_output_muted*1)
+						};
+
+						cb(null, client.clid);
+
+					});
+				}, function(err, results){
+					var x, mutedclients = [], idleclients = [];
+					for(x in currentcim){
+						if(currentcim.hasOwnProperty(x)){
+
+							if(!clientsIdleMuted[x]){
+								clientsIdleMuted[x] = {
+									away : 0,
+									muted: 0
+								};
+							}
+
+							if(currentcim[x].away) {
+								clientsIdleMuted[x].away++;
+							} else {
+								clientsIdleMuted[x].away = 0;
+							}
+							if(currentcim[x].muted) {
+								clientsIdleMuted[x].muted++;
+							} else {
+								clientsIdleMuted[x].muted = 0;
+							}
+						}
+					}
+
+					for(x in clientsIdleMuted){
+						if(clientsIdleMuted.hasOwnProperty(x)){
+							if(!currentcim[x]){
+								delete clientsIdleMuted[x];
+							}
+						}
+					}
+
+					console.log(beautify(JSON.stringify(clientsIdleMuted)));
+
+					timer = setTimeout(checkIdleMuted, checkIdleMutedInterval);
+
+				});
+			});
+
+		}
 
 	}
 
@@ -209,6 +284,9 @@
 		function clientfind(nick, cb){
 			ts.send("clientfind", { pattern: nick }, function(err, info){
 				if(err) {console.error(err);}
+
+				if(!info) {return false;}
+
 				if(!info.length){
 					info = [info];
 				}
@@ -236,13 +314,12 @@
 		var action = {
 
 			poke: {
-				group: function(actionvalue, targetvalue, originclient){
+				group: function(actionvalue, targetvalue, clid){
 					ts.send("clientlist", function(err, clients){
-						if(!clients.length) {clients = [clients];}
-		        var len = clients.length;
-		        async.map(clients, function(client, cb){
-		          ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
-		            if(err) {console.error(err);}
+						if(!clients.length) { clients = [clients]; }
+						function go(client){
+							ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
+								if(err) { console.error(err); }
 								var groups = (""+clientinfo.client_servergroups).split(',');
 
 								var match = false;
@@ -255,19 +332,18 @@
 								if(match){
 									ts.send("clientpoke", { clid: client.clid, msg: actionvalue }, function(err, res){
 										if (err) {console.error(err);}
-										cb(null, match);
 									});
-								} else {
-									cb(null, match);
 								}
 
-		          });
-		        }, function(){
+							});
+						}
 
-						});
+						for(var i=0; i<clients.length; i++){
+							go(clients[i]);
+						}
 					});
 				},
-				channel: function(actionvalue, targetvalue, originclient){
+				channel: function(actionvalue, targetvalue, clid){
 					channelfind(targetvalue, function(info){
 						getClientsInChannel(function(users){
 							var arr = [];
@@ -280,14 +356,20 @@
 						}, info.cid);
 					});
 				},
-				client: function(actionvalue, targetvalue, originclient){
-					clientfind(targetvalue, function(info){
-						ts.send("clientpoke", { clid: info.clid, msg: actionvalue }, function(err, res){
+				client: function(actionvalue, targetvalue, clid){
+					if(targetvalue === null && clid){
+						ts.send("clientpoke", { clid: clid, msg: actionvalue }, function(err, res){
 							if (err) {console.error(err);}
 						});
-					});
+					} else {
+						clientfind(targetvalue, function(info){
+							ts.send("clientpoke", { clid: info.clid, msg: actionvalue }, function(err, res){
+								if (err) {console.error(err);}
+							});
+						});
+					}
 				},
-				server: function(actionvalue, targetvalue, originclient){
+				server: function(actionvalue, targetvalue, clid){
 					ts.send("clientlist", function(err, clients){
 						if(err) {console.error(err);}
 						if(!clients){
@@ -309,7 +391,7 @@
 			},
 
 			move: {
-				channel: function(actionvalue, targetvalue, originclient){
+				channel: function(actionvalue, targetvalue, clid){
 
 					channelfind(targetvalue, function(info){
 						getClientsInChannel(function(users){
@@ -327,19 +409,26 @@
 						}, info.cid);
 					});
 				},
-				client: function(actionvalue, targetvalue, originclient){
-					clientfind(targetvalue, function(info){
-						ts.send("clientmove", { clid: info.clid, cid: actionvalue }, function(err, res){
+				client: function(actionvalue, targetvalue, clid){
+					if(targetvalue === null && clid){
+						ts.send("clientmove", { clid: clid, cid: actionvalue }, function(err, res){
 							if (err) {console.error(err);}
 
 						});
-					});
+					} else {
+						clientfind(targetvalue, function(info){
+							ts.send("clientmove", { clid: info.clid, cid: actionvalue }, function(err, res){
+								if (err) {console.error(err);}
+
+							});
+						});
+					}
 				}
 			},
 
 			kick: {
 
-				client: function(actionvalue, targetvalue, originclient){
+				client: function(actionvalue, targetvalue, clid){
 					clientfind(targetvalue, function(info){
 						ts.send("clientkick", { clid: info.cid, reasonid: 5, reasonmsg: actionvalue }, function(err, res){
 							if (err) {console.error(err);}
@@ -350,18 +439,24 @@
 			},
 
 			message: {
-				client: function(actionvalue, targetvalue, originclient){
-					clientfind(targetvalue, function(info){
-						ts.send("sendtextmessage", { targetmode: 1, target: info.clid, msg: actionvalue }, function(err, res){
+				client: function(actionvalue, targetvalue, clid){
+					if(targetvalue === null && clid){
+						ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: actionvalue }, function(err, res){
 							if (err) {console.error(err);}
 
 						});
-					});
+					} else {
+						clientfind(targetvalue, function(info){
+							ts.send("sendtextmessage", { targetmode: 1, target: info.clid, msg: actionvalue }, function(err, res){
+								if (err) {console.error(err);}
+
+							});
+						});
+					}
 				},
-				group: function(actionvalue, targetvalue, originclient){
+				group: function(actionvalue, targetvalue, clid){
 					ts.send("clientlist", function(err, clients){
 						if(!clients.length) {clients = [clients];}
-						var len = clients.length;
 
 						function go(client){
 							ts.send("clientinfo", { clid: client.clid }, function (err, clientinfo){
@@ -390,47 +485,47 @@
 
 					});
 				},
-				channel: function(actionvalue, targetvalue, originclient){
+				channel: function(actionvalue, targetvalue, clid){
 					channelfind(targetvalue, function(info){
 						ts.send("sendtextmessage", { targetmode: 2, target: info.clid, msg: actionvalue }, function(err, res){
 							if (err) {console.error(err);}
 						});
 					});
 				},
-				server: function(actionvalue, targetvalue, originclient){
+				server: function(actionvalue, targetvalue, clid){
 					ts.send("sendtextmessage", { targetmode: 3, target: serverInfo.sid, msg: actionvalue }, function(err, res){
 						if (err) {console.error(err);}
 					});
 				}
 			},
 			info: {
-				client: function(actionvalue, targetvalue, originclient){
+				client: function(actionvalue, targetvalue, clid){
 					clientfind(targetvalue, function(info){
 						ts.send("clientinfo", { clid: info.clid }, function(err, client){
 							if(err) { console.error(err); }
 							client = beautify(JSON.stringify(client));
 							client = [client.substring(0, Math.floor(client.length/2)), client.substring(Math.floor(client.length/2))];
-							ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: "CLIENTINFO:\n"+client[0] }, function(err, res){
+							ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: "CLIENTINFO:\n"+client[0] }, function(err, res){
 								if (err){ console.error(err);}
-								ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: client[1] }, function(err, res){
+								ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: client[1] }, function(err, res){
 									if (err){ console.error(err);}
 								});
 							});
 						});
 					});
 				},
-				channel: function(actionvalue, targetvalue, originclient){
+				channel: function(actionvalue, targetvalue, clid){
 					channelfind(targetvalue, function(info){
 						ts.send("channelinfo", { cid: info.cid }, function(err, channel){
 							if(err) {console.error(err);}
-							ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: "CHANNELINFO:\n" +beautify(JSON.stringify(channel)) }, function(err, res){
+							ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: "CHANNELINFO:\n" +beautify(JSON.stringify(channel)) }, function(err, res){
 								if (err) {console.error(err);}
 							});
 						});
 
 					});
 				},
-				server: function(actionvalue, targetvalue, originclient){
+				server: function(actionvalue, targetvalue, clid){
 					ts.send("serverinfo", function(err, info){
 						if(err) {console.error(err);}
 							info = beautify(JSON.stringify(info));
@@ -441,15 +536,15 @@
 								info.substring(Math.floor(info.length*3/5), Math.floor(info.length*4/5)),
 								info.substring(Math.floor(info.length*4/5))
 							];
-						ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: "SERVERINFO: \n"+info[0] }, function(err, res){
+						ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: "SERVERINFO: \n"+info[0] }, function(err, res){
 							if (err) {console.error(err);}
-							ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: info[1] }, function(err, res){
+							ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: info[1] }, function(err, res){
 								if (err) {console.error(err);}
-								ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: info[2] }, function(err, res){
+								ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: info[2] }, function(err, res){
 									if (err) {console.error(err);}
-									ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: info[3] }, function(err, res){
+									ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: info[3] }, function(err, res){
 										if (err) {console.error(err);}
-										ts.send("sendtextmessage", { targetmode: 1, target: originclient, msg: info[4] }, function(err, res){
+										ts.send("sendtextmessage", { targetmode: 1, target: clid, msg: info[4] }, function(err, res){
 											if (err) {console.error(err);}
 										});
 									});
@@ -460,8 +555,6 @@
 				}
 			}
 		};
-
-
 
 		if(!(task.trigger === "timedate" || task.trigger === "interval"  ||
 				  task.trigger === "connect" || task.trigger === "idle" 		 ||
@@ -527,15 +620,43 @@
 				return function(){  };
 			},
 			idle: function(){
-				var grace = task.triggervalue;
-
+				var grace = task.triggervalue*60*1000/checkIdleMutedInterval;
+				var onIdle = function(clid){ action[task.action][task.target](task.actionvalue, null, clid); };
+				var timer;
+				function check(){
+					var x;
+					for(x in clientsIdleMuted){
+						if(clientsIdleMuted.hasOwnProperty(x)){
+							if(clientsIdleMuted[x].away >= grace){
+								onIdle(x);
+								clientsIdleMuted[x].away = -1000;
+							}
+						}
+					}
+					timer = setTimeout(check, checkIdleMutedInterval);
+				}
+				check();
+				return function(){ clearTimeout(timer); };
 			},
 			muted: function(){
-				var grace = task.triggervalue;
+				var grace = task.triggervalue*60*1000/checkIdleMutedInterval;
+				var onMuted = function(clid){ action[task.action][task.target](task.actionvalue, null, clid); };
+				var timer;
 
-			},
-			recording: function(){
-				var grace = task.triggervalue;
+				function check(){
+					var x;
+					for(x in clientsIdleMuted){
+						if(clientsIdleMuted.hasOwnProperty(x)){
+							if(clientsIdleMuted[x].muted >= grace){
+								onMuted(x);
+								clientsIdleMuted[x].muted = -1000;
+							}
+						}
+					}
+					timer = setTimeout(check, checkIdleMutedInterval);
+				}
+				check();
+				return function(){ clearTimeout(timer); };
 
 			},
 			chatcommand: function(){
@@ -566,7 +687,7 @@
 								targetvalue = msg[2];
 							}
 
-						action[task.action][task.target](actionvalue, targetvalue , info.invokerid);
+							action[task.action][task.target](actionvalue, targetvalue , info.invokerid);
 						}
 
 					});

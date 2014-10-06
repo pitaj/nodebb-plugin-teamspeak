@@ -234,38 +234,38 @@
 		},
 		value:'',
 		lang:'en',
-		
+
 		format:	'Y/m/d H:i',
 		formatTime:	'H:i',
 		formatDate:	'Y/m/d',
-		
-		startDate:	false, // new Date(), '1986/12/08', '-1970/01/05','-1970/01/05', 
-		
+
+		startDate:	false, // new Date(), '1986/12/08', '-1970/01/05','-1970/01/05',
+
 		step:60,
 		monthChangeSpinner:true,
 		closeOnDateSelect:false,
 		closeOnWithoutClick:true,
 		closeOnInputClick: true,
-		
+
 		timepicker:true,
 		datepicker:true,
 		weeks:false,
-		
+
 		defaultTime:false,		// use formatTime format (ex. '10:00' for formatTime:	'H:i')
 		defaultDate:false, 		// use formatDate format (ex new Date() or '1986/12/08' or '-1970/01/05' or '-1970/01/05')
-		
+
 		minDate:false,
 		maxDate:false,
 		minTime:false,
 		maxTime:false,
-		
+
 		allowTimes:[],
 		opened:false,
 		initTime:true,
 		inline:false,
-		
+
 		theme:'',
-		
+
 		onSelectDate:function() {},
 		onSelectTime:function() {},
 		onChangeMonth:function() {},
@@ -274,9 +274,9 @@
 		onShow:function() {},
 		onClose:function() {},
 		onGenerate:function() {},
-		
+
 		withoutCopyright:true,
-		
+
 		inverseButton:false,
 		hours12:false,
 		next:	'xdsoft_next',
@@ -284,39 +284,39 @@
 		dayOfWeekStart:0,
 
 		parentID: 'body',
-		
+
 		timeHeightInTimePicker:25,
 		timepickerScrollbar:true,
-		
+
 		todayButton:true, // 2.1.0
 		defaultSelect:true, // 2.1.0
-		
+
 		scrollMonth:true,
 		scrollTime:true,
 		scrollInput:true,
-		
+
 		lazyInit:false,
-		
+
 		mask:false,
 		validateOnBlur:true,
 		allowBlank:true,
-		
+
 		yearStart:1950,
 		yearEnd:2050,
-		
+
 		style:'',
 		id:'',
-		
+
 		fixed: false,
-		
+
 		roundTime:'round', // ceil, floor
 		className:'',
-		
+
 		weekends	: 	[],
 		yearOffset:0,
 		beforeShowDay: null
 	};
-	
+
 	// fix for ie8
 	if ( !Array.prototype.indexOf ) {
 		Array.prototype.indexOf = function(obj, start) {
@@ -326,11 +326,11 @@
 			 return -1;
 		}
 	}
-	
+
 	Date.prototype.countDaysInMonth = function(){
 		return new Date(this.getFullYear(), this.getMonth()+1, 0).getDate();
 	};
-	
+
 	$.fn.xdsoftScroller = function( _percent ) {
 		return this.each(function() {
 			var timeboxparent = $(this);
@@ -389,7 +389,7 @@
 						scroller.css('margin-top',maximumOffset*percent);
 						setTimeout(function(){
 							timebox.css('marginTop',-parseInt((timebox[0].offsetHeight-parentHeight)*percent))
-						},10);						
+						},10);
 					})
 					.on('resize_scroll.xdsoft_scroller',function( event,_percent,noTriggerScroll ) {
 						parentHeight = timeboxparent[0].clientHeight;
@@ -462,24 +462,24 @@
 					.on('open.xdsoft focusin.xdsoft mousedown.xdsoft',function initOnActionCallback(event) {
 						if( input.is(':disabled')||input.is(':hidden')||!input.is(':visible')||input.data( 'xdsoft_datetimepicker') )
 							return;
-				
+
 						clearTimeout(lazyInitTimer);
-						
+
 						lazyInitTimer = setTimeout(function() {
 
 							if( !input.data( 'xdsoft_datetimepicker') )
 								createDateTimePicker(input);
-								
+
 							input
 								.off('open.xdsoft focusin.xdsoft mousedown.xdsoft',initOnActionCallback)
 								.trigger('open.xdsoft');
 						},100);
-						
+
 					});
 			},
-			
+
 			createDateTimePicker = function( input ) {
-				
+
 				var datetimepicker = $('<div '+(options.id?'id="'+options.id+'"':'')+' '+(options.style?'style="'+options.style+'"':'')+' class="xdsoft_datetimepicker xdsoft_'+options.theme+' xdsoft_noselect '+(options.weeks?' xdsoft_showweeks':'')+options.className+'"></div>'),
 					xdsoft_copyright = $('<div class="xdsoft_copyright"><a target="_blank" href="http://xdsoft.net/jqplugins/datetimepicker/">xdsoft.net</a></div>'),
 					datepicker = $('<div class="xdsoft_datepicker active"></div>'),
@@ -511,19 +511,19 @@
 								val = 0,
 								top = 0,
 								visible = select.is(':visible');
-							
-							
+
+
 							mounth_picker
 								.find('.xdsoft_select')
 									.hide();
-									
-						
+
+
 
 							if( _xdsoft_datetime.currentTime )
 								val = _xdsoft_datetime.currentTime[$(this).hasClass('xdsoft_month')?'getMonth':'getFullYear']();
 
 							select[visible?'hide':'show']();
-							
+
 							for(var items = select.find('div.xdsoft_option'),i = 0;i<items.length;i++) {
 								if( items.eq(i).data('value')==val ) {
 									break;
@@ -532,7 +532,7 @@
 
 							select.xdsoftScroller(top/(select.children()[0].offsetHeight-(select[0].clientHeight)));
 							event.stopPropagation();
-							
+
 							return false;
 						});
 
@@ -547,12 +547,12 @@
 							var year = _xdsoft_datetime.currentTime.getFullYear();
 							if( _xdsoft_datetime&&_xdsoft_datetime.currentTime )
 								_xdsoft_datetime.currentTime[$(this).parent().parent().hasClass('xdsoft_monthselect')?'setMonth':'setFullYear']($(this).data('value'));
-							
+
 							$(this).parent().parent().hide();
-							
+
 							datetimepicker.trigger('xchange.xdsoft');
 							options.onChangeMonth&&options.onChangeMonth.call&&options.onChangeMonth.call(datetimepicker,_xdsoft_datetime.currentTime,datetimepicker.data('input'));
-							
+
 							if( year!=_xdsoft_datetime.currentTime.getFullYear() && $.isFunction(options.onChangeYear) ){
 								options.onChangeYear.call(datetimepicker,_xdsoft_datetime.currentTime,datetimepicker.data('input'));
 							}
@@ -562,15 +562,15 @@
 				// set options
 				datetimepicker.setOptions = function( _options ) {
 					options = $.extend(true,{},options,_options);
-					
+
 					if( _options.allowTimes && $.isArray(_options.allowTimes) && _options.allowTimes.length ){
 						options['allowTimes'] = $.extend(true,[],_options.allowTimes);
 					}
-					
+
 					if( _options.weekends && $.isArray(_options.weekends) && _options.weekends.length ){
 						options['weekends'] = $.extend(true,[],_options.weekends);
 					}
-					
+
 					if( (options.open||options.opened)&&(!options.inline) ) {
 						input.trigger('open.xdsoft');
 					}
@@ -608,15 +608,15 @@
 
 					if( !options.timepickerScrollbar )
 						scrollbar.hide();
-					
+
 					if( options.minDate && /^-(.*)$/.test(options.minDate) ){
 						options.minDate = _xdsoft_datetime.strToDateTime(options.minDate).dateFormat( options.formatDate );
 					}
-					
+
 					if( options.maxDate &&  /^\+(.*)$/.test(options.maxDate) ) {
 						options.maxDate = _xdsoft_datetime.strToDateTime(options.maxDate).dateFormat( options.formatDate );
 					}
-					
+
 					mounth_picker
 						.find('.xdsoft_today_button')
 							.css('visibility',!options.todayButton?'hidden':'visible');
@@ -664,7 +664,7 @@
 						input.off('keydown.xdsoft');
 						switch(true) {
 							case ( options.mask===true ):
-							
+
 								options.mask = options.format
 									.replace(/Y/g,'9999')
 									.replace(/F/g,'9999')
@@ -673,26 +673,26 @@
 									.replace(/H/g,'29')
 									.replace(/i/g,'59')
 									.replace(/s/g,'59');
-									
+
 							case ( $.type(options.mask) == 'string' ):
-							
+
 								if( !isValidValue( options.mask,input.val() ) )
 									input.val(options.mask.replace(/[0-9]/g,'_'));
 
 								input.on('keydown.xdsoft',function( event ) {
 									var val = this.value,
 										key = event.which;
-										
+
 									switch(true) {
 										case (( key>=KEY0&&key<=KEY9 )||( key>=_KEY0&&key<=_KEY9 ))||(key==BACKSPACE||key==DEL):
 											var pos = getCaretPos(this),
 												digit = ( key!=BACKSPACE&&key!=DEL )?String.fromCharCode((_KEY0 <= key && key <= _KEY9)? key-KEY0 : key):'_';
-											
+
 											if( (key==BACKSPACE||key==DEL)&&pos ) {
 												pos--;
 												digit='_';
 											}
-											
+
 											while( /[^0-9_]/.test(options.mask.substr(pos,1))&&pos<options.mask.length&&pos>0 )
 												pos+=( key==BACKSPACE||key==DEL )?-1:1;
 
@@ -703,11 +703,11 @@
 												if( pos==options.mask.length )
 													break;
 											}
-											
+
 											pos+=(key==BACKSPACE||key==DEL)?0:1;
 											while( /[^0-9_]/.test(options.mask.substr(pos,1))&&pos<options.mask.length&&pos>0 )
 												pos+=(key==BACKSPACE||key==DEL)?-1:1;
-												
+
 											if( isValidValue( options.mask,val ) ) {
 												this.value = val;
 												setCaretPos(this,pos);
@@ -745,7 +745,7 @@
 							});
 					}
 					options.dayOfWeekStartPrev = (options.dayOfWeekStart==0)?6:options.dayOfWeekStart-1;
-					
+
 					datetimepicker
 						.trigger('xchange.xdsoft')
 						.trigger('afterOpen.xdsoft')
@@ -764,7 +764,7 @@
 				var scroll_element = timepicker.find('.xdsoft_time_box');
 				scroll_element.append(timebox);
 				scroll_element.xdsoftScroller();
-				
+
 				datetimepicker.on('afterOpen.xdsoft',function() {
 					scroll_element.xdsoftScroller();
 				});
@@ -788,28 +788,28 @@
 					var _this = this;
 					_this.now = function( norecursion ) {
 						var d = new Date();
-						
+
 						if( !norecursion && options.defaultDate  ){
 							var date = _this.strToDate(options.defaultDate);
 							d.setFullYear( date.getFullYear() );
 							d.setMonth( date.getMonth() );
 							d.setDate( date.getDate() );
 						}
-						
+
 						if( options.yearOffset  ){
 							d.setFullYear(d.getFullYear()+options.yearOffset);
 						}
-						
+
 						if( !norecursion && options.defaultTime ){
 							var time = _this.strtotime(options.defaultTime);
 							d.setHours( time.getHours() );
 							d.setMinutes( time.getMinutes() );
 						}
-							
+
 						return d;
 					};
 
-					
+
 					_this.isValidDate = function (d) {
 						if ( Object.prototype.toString.call(d) !== "[object Date]" )
 							return false;
@@ -836,7 +836,7 @@
 							month = 0;
 						}
 						var year = _this.currentTime.getFullYear();
-						
+
 						_this.currentTime.setDate(
 							Math.min(
 								// Day 0 is the last day in the previous month, but we want to know the number of days in the current month, so we need to evaluate the subsequent month (month+1)
@@ -846,11 +846,11 @@
 						);
 						_this.currentTime.setMonth(month);
 						options.onChangeMonth&&options.onChangeMonth.call&&options.onChangeMonth.call(datetimepicker,_xdsoft_datetime.currentTime,datetimepicker.data('input'));
-						
+
 						if( year!=_this.currentTime.getFullYear() && $.isFunction(options.onChangeYear) ){
 							options.onChangeYear.call(datetimepicker,_xdsoft_datetime.currentTime,datetimepicker.data('input'));
 						}
-						
+
 						datetimepicker.trigger('xchange.xdsoft');
 						return month;
 					};
@@ -873,56 +873,56 @@
 						datetimepicker.trigger('xchange.xdsoft');
 						return month;
 					};
-					
+
 					_this.getWeekOfYear = function( datetime ) {
 						var onejan = new Date( datetime.getFullYear(),0,1 );
 						return Math.ceil((((datetime - onejan) / 86400000) + onejan.getDay()+1)/7);
 					};
-					
+
 					_this.strToDateTime = function( sDateTime ) {
 						if( sDateTime && sDateTime instanceof Date && _this.isValidDate(sDateTime) )
 							return sDateTime;
-						
+
 						var tmpDate = [],timeOffset,currentTime;
-					
+
 						if( ( tmpDate = /^(\+|\-)(.*)$/.exec(sDateTime) )  && ( tmpDate[2]=Date.parseDate(tmpDate[2], options.formatDate) ) ) {
 							timeOffset = tmpDate[2].getTime()-(tmpDate[2].getTimezoneOffset())*60000;
 							currentTime = new Date((_xdsoft_datetime.now()).getTime()+parseInt(tmpDate[1]+'1')*timeOffset);
 						}else
 							currentTime = sDateTime?Date.parseDate(sDateTime, options.format):_this.now();
-							
+
 						if( !_this.isValidDate(currentTime) )
 							currentTime = _this.now();
-							
+
 						return currentTime;
 					};
 
 					_this.strToDate = function( sDate ) {
 						if( sDate && sDate instanceof Date && _this.isValidDate(sDate) )
 							return sDate;
-						
+
 						var currentTime = sDate?Date.parseDate(sDate, options.formatDate):_this.now(true);
 						if( !_this.isValidDate(currentTime) )
 							currentTime = _this.now(true);
-							
+
 						return currentTime;
 					};
 
 					_this.strtotime = function( sTime ) {
 						if( sTime && sTime instanceof Date && _this.isValidDate(sTime) )
 							return sTime;
-							
+
 						var currentTime = sTime?Date.parseDate(sTime, options.formatTime):_this.now(true);
 						if( !_this.isValidDate(currentTime) )
 							currentTime = _this.now(true);
-							
+
 						return currentTime;
 					};
 
 					_this.str = function() {
 						return _this.currentTime.dateFormat(options.format);
 					};
-					
+
 					_this.currentTime = this.now();
 				};
 				mounth_picker
@@ -999,7 +999,7 @@
 									start	= new Date(_xdsoft_datetime.currentTime.getFullYear(),_xdsoft_datetime.currentTime.getMonth(),1, 12, 0, 0),
 									i = 0,
 									today = _xdsoft_datetime.now();
-								
+
 								while( start.getDay()!=options.dayOfWeekStart )
 									start.setDate(start.getDate()-1);
 
@@ -1018,26 +1018,26 @@
 								table+='</tr></thead>';
 								table+='<tbody>';
 								var maxDate = false, minDate = false;
-								
+
 								if( options.maxDate!==false ) {
 									maxDate = _xdsoft_datetime.strToDate(options.maxDate);
 									maxDate = new Date(maxDate.getFullYear(),maxDate.getMonth(),maxDate.getDate(),23,59,59,999);
 								}
-								
+
 								if( options.minDate!==false ) {
 									minDate = _xdsoft_datetime.strToDate(options.minDate);
 									minDate = new Date(minDate.getFullYear(),minDate.getMonth(),minDate.getDate());
 								}
-								
+
 								var d,y,m,w,classes = [],customDateSettings,newRow=true;
-								
+
 								while( i<_xdsoft_datetime.currentTime.countDaysInMonth()||start.getDay()!=options.dayOfWeekStart||_xdsoft_datetime.currentTime.getMonth()==start.getMonth() ) {
 									classes = [];
 									i++;
 
-									d = start.getDate(); 
-									y = start.getFullYear(); 
-									m = start.getMonth(); 
+									d = start.getDate();
+									y = start.getFullYear();
+									m = start.getMonth();
 									w = _xdsoft_datetime.getWeekOfYear(start);
 
 									classes.push('xdsoft_date');
@@ -1077,7 +1077,7 @@
 									if( newRow ) {
 										table+='<tr>';
 										newRow = false;
-										
+
 										if(options.weeks) {
 											table+='<th>'+w+'</th>';
 										}
@@ -1171,7 +1171,7 @@
 							} else if( timebox.find('.xdsoft_init_time').length ) {
 								classType = '.xdsoft_init_time';
 							}
-							
+
 							if( classType ) {
 								var pheight = timeboxparent[0].clientHeight,
 									height = timebox[0].offsetHeight,
@@ -1184,21 +1184,21 @@
 							}
 						}
 					});
-				
+
 				var timerclick = 0;
-				
+
 				calendar
 					.on('click.xdsoft', 'td', function (xdevent) {
 					  xdevent.stopPropagation();  // Prevents closing of Pop-ups, Modals and Flyouts in Bootstrap
 						timerclick++;
 						var $this = $(this),
 							currentTime = _xdsoft_datetime.currentTime;
-						
+
 						if( currentTime===undefined||currentTime===null ){
                             _xdsoft_datetime.currentTime = _xdsoft_datetime.now();
                             currentTime = _xdsoft_datetime.currentTime;
                         }
-						
+
 						if( $this.hasClass('xdsoft_disabled') )
 							return false;
 
@@ -1206,7 +1206,7 @@
 						currentTime.setFullYear( $this.data('year') );
 						currentTime.setMonth( $this.data('month') );
 						currentTime.setDate( $this.data('date') );
-						
+
 						datetimepicker.trigger('select.xdsoft',[currentTime]);
 
 						input.val( _xdsoft_datetime.str() );
@@ -1231,12 +1231,12 @@
 					    xdevent.stopPropagation(); // NAJ: Prevents closing of Pop-ups, Modals and Flyouts
 						var $this = $(this),
 							currentTime = _xdsoft_datetime.currentTime;
-						
+
 						if( currentTime===undefined||currentTime===null ){
                             _xdsoft_datetime.currentTime = _xdsoft_datetime.now();
                             currentTime = _xdsoft_datetime.currentTime;
                         }
-						
+
 						if( $this.hasClass('xdsoft_disabled') )
 							return false;
 						currentTime.setHours($this.data('hour'));
@@ -1283,7 +1283,7 @@
 					event.stopPropagation();
 					return fl;
 				});
-				
+
 				var triggerAfterOpen = false;
 				datetimepicker
 					.on('changedatetime.xdsoft',function() {
@@ -1366,12 +1366,12 @@
 					})
 					.on('close.xdsoft', function( event ) {
 						var onClose = true;
-						
+
 						mounth_picker
 							.find('.xdsoft_month,.xdsoft_year')
 								.find('.xdsoft_select')
 									.hide();
-						
+
 						if( options.onClose&&options.onClose.call ) {
 							onClose=options.onClose.call(datetimepicker,_xdsoft_datetime.currentTime,datetimepicker.data('input'));
 						}
@@ -1387,7 +1387,7 @@
 
 				datetimepicker.data('xdsoft_datetime',_xdsoft_datetime);
 				datetimepicker.setOptions(options);
-				
+
 				function getCurrentValue(){
 
 					var ct = false;
@@ -1413,7 +1413,7 @@
 					} else {
                         ct = '';
                     }
-					
+
 					return ct?ct:0;
 				}
 				//debugger
@@ -1428,10 +1428,10 @@
 						timer = setTimeout(function() {
 							if( input.is(':disabled')||input.is(':hidden')||!input.is(':visible') )
 								return;
-								
+
 							triggerAfterOpen = true;
 							_xdsoft_datetime.setCurrentTime(getCurrentValue());
-							
+
 							datetimepicker.trigger('open.xdsoft');
 						},100);
 					})
@@ -1525,7 +1525,79 @@
  *
  * Requires: 1.2.2+
  */
-(function(factory) {if(typeof define==='function'&&define.amd) {define(['jquery'],factory)}else if(typeof exports==='object') {module.exports=factory}else{factory(jQuery)}}(function($) {var toFix=['wheel','mousewheel','DOMMouseScroll','MozMousePixelScroll'];var toBind='onwheel'in document||document.documentMode>=9?['wheel']:['mousewheel','DomMouseScroll','MozMousePixelScroll'];var lowestDelta,lowestDeltaXY;if($.event.fixHooks) {for(var i=toFix.length;i;) {$.event.fixHooks[toFix[--i]]=$.event.mouseHooks}}$.event.special.mousewheel={setup:function() {if(this.addEventListener) {for(var i=toBind.length;i;) {this.addEventListener(toBind[--i],handler,false)}}else{this.onmousewheel=handler}},teardown:function() {if(this.removeEventListener) {for(var i=toBind.length;i;) {this.removeEventListener(toBind[--i],handler,false)}}else{this.onmousewheel=null}}};$.fn.extend({mousewheel:function(fn) {return fn?this.bind("mousewheel",fn):this.trigger("mousewheel")},unmousewheel:function(fn) {return this.unbind("mousewheel",fn)}});function handler(event) {var orgEvent=event||window.event,args=[].slice.call(arguments,1),delta=0,deltaX=0,deltaY=0,absDelta=0,absDeltaXY=0,fn;event=$.event.fix(orgEvent);event.type="mousewheel";if(orgEvent.wheelDelta) {delta=orgEvent.wheelDelta}if(orgEvent.detail) {delta=orgEvent.detail*-1}if(orgEvent.deltaY) {deltaY=orgEvent.deltaY*-1;delta=deltaY}if(orgEvent.deltaX) {deltaX=orgEvent.deltaX;delta=deltaX*-1}if(orgEvent.wheelDeltaY!==undefined) {deltaY=orgEvent.wheelDeltaY}if(orgEvent.wheelDeltaX!==undefined) {deltaX=orgEvent.wheelDeltaX*-1}absDelta=Math.abs(delta);if(!lowestDelta||absDelta<lowestDelta) {lowestDelta=absDelta}absDeltaXY=Math.max(Math.abs(deltaY),Math.abs(deltaX));if(!lowestDeltaXY||absDeltaXY<lowestDeltaXY) {lowestDeltaXY=absDeltaXY}fn=delta>0?'floor':'ceil';delta=Math[fn](delta/lowestDelta);deltaX=Math[fn](deltaX/lowestDeltaXY);deltaY=Math[fn](deltaY/lowestDeltaXY);args.unshift(event,delta,deltaX,deltaY);return($.event.dispatch||$.event.handle).apply(this,args)}}));
+(function(factory) {
+		factory(jQuery)
+}(function($) {
+	var toFix=['wheel','mousewheel','DOMMouseScroll','MozMousePixelScroll'];
+	var toBind='onwheel'in document||document.documentMode>=9?['wheel']:['mousewheel','DomMouseScroll','MozMousePixelScroll'];
+	var lowestDelta,lowestDeltaXY;
+	if($.event.fixHooks) {
+		for(var i=toFix.length;i;) {
+			$.event.fixHooks[toFix[--i]]=$.event.mouseHooks
+		}
+	}
+	$.event.special.mousewheel={
+		setup:function() {
+			if(this.addEventListener) {
+				for(var i=toBind.length;i;) {
+					this.addEventListener(toBind[--i],handler,false)
+				}
+			} else {
+				this.onmousewheel=handler
+			}
+		}, teardown:function() {
+			if(this.removeEventListener) {
+				for(var i=toBind.length;i;) {
+					this.removeEventListener(toBind[--i],handler,false)
+				}
+			} else {
+				this.onmousewheel=null
+			}
+		}
+	};
+	$.fn.extend({
+		mousewheel:function(fn) {
+			return fn?this.bind("mousewheel",fn):this.trigger("mousewheel")
+		},
+		unmousewheel:function(fn) {
+			return this.unbind("mousewheel",fn)
+		}
+	});
+	function handler(event) {
+		var orgEvent=event||window.event,args=[].slice.call(arguments,1),delta=0,deltaX=0,deltaY=0,absDelta=0,absDeltaXY=0,fn;
+		event=$.event.fix(orgEvent);
+		event.type="mousewheel";
+		if(orgEvent.wheelDelta) {
+			delta=orgEvent.wheelDelta
+		} if(orgEvent.detail) {
+			delta=orgEvent.detail*-1
+		} if(orgEvent.deltaY) {
+			deltaY=orgEvent.deltaY*-1;
+			delta=deltaY
+		} if(orgEvent.deltaX) {
+			deltaX=orgEvent.deltaX;
+			delta=deltaX*-1
+		} if(orgEvent.wheelDeltaY!==undefined) {
+			deltaY=orgEvent.wheelDeltaY
+		} if(orgEvent.wheelDeltaX!==undefined) {
+			deltaX=orgEvent.wheelDeltaX*-1
+		}
+		absDelta=Math.abs(delta);
+		if(!lowestDelta||absDelta<lowestDelta) {
+			lowestDelta=absDelta
+		}
+		absDeltaXY=Math.max(Math.abs(deltaY),Math.abs(deltaX));
+		if(!lowestDeltaXY||absDeltaXY<lowestDeltaXY) {
+			lowestDeltaXY=absDeltaXY
+		}
+		fn=delta>0?'floor':'ceil';
+		delta=Math[fn](delta/lowestDelta);
+		deltaX=Math[fn](deltaX/lowestDeltaXY);
+		deltaY=Math[fn](deltaY/lowestDeltaXY);
+		args.unshift(event,delta,deltaX,deltaY);
+		return($.event.dispatch||$.event.handle).apply(this,args)
+	}
+}));
 
 
 // Parse and Format Library

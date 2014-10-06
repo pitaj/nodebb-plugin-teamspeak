@@ -58,7 +58,6 @@
         <option value="connect">Group connect</option>
         <option value="idle">Idle</option>
         <option value="muted">Mic & Sound muted</option>
-        <option value="recording">User recording</option>
         <option value="chatcommand">Chat command</option>
 
       </select>
@@ -84,6 +83,7 @@
       <!--
           Message for poke, kick, message
           Destination channel for move
+          Hidden for info
       -->
       <br>
       The target for this task:
@@ -142,7 +142,7 @@
     if(trigger.val() === "connect"){
       triggervalue.attr("placeholder", "Group id#");
     }
-    if(trigger.val() === "idle" || trigger === "muted" || trigger === "recording"){
+    if(trigger.val() === "idle" || trigger.val() === "muted"){
       target.children().filter(function(){ return this.value !== "client"; }).attr("disabled", true);
       target.val("client");
       triggervalue.attr("placeholder", "Delay in minutes");
@@ -179,7 +179,7 @@
     }
 
     if(target.val() === "client"){
-      if(trigger.val() === "idle" || trigger.val() === "muted" || trigger.val() === "recording" || trigger.val() === "connect"){
+      if(trigger.val() === "idle" || trigger.val() === "muted" || trigger.val() === "connect"){
         targetvalue.css("visibility", "hidden");
       } else {
         targetvalue.css("visibility", "").attr("placeholder", "Client nickname");
@@ -280,22 +280,7 @@
     }
 
     var x, newTask;
-    for(x in tasks){
-      if(tasks.hasOwnProperty(x)){
-        newTask = addTask();
 
-        newTask.find(".task-name").val(x);
-        newTask.children(".task-trigger").val(tasks[x].trigger);
-        newTask.children(".task-trigger-value").val(tasks[x].triggervalue);
-        newTask.children(".task-action").val(tasks[x].action);
-        newTask.children(".task-action-value").val(tasks[x].actionvalue);
-        newTask.children(".task-target").val(tasks[x].target);
-        newTask.children(".task-target-value").val(tasks[x].targetvalue);
-        newTask.find(".task-enabled").attr("checked", true);
-
-        newTask.children("select").trigger("change");
-      }
-    }
     if(tasks.disabled){
       for(x in tasks.disabled){
         if(tasks.disabled.hasOwnProperty(x)){
@@ -312,7 +297,26 @@
           newTask.children("select").trigger("change");
         }
       }
+      delete tasks.disabled;
     }
+
+    for(x in tasks){
+      if(tasks.hasOwnProperty(x)){
+        newTask = addTask();
+
+        newTask.find(".task-name").val(x);
+        newTask.children(".task-trigger").val(tasks[x].trigger);
+        newTask.children(".task-trigger-value").val(tasks[x].triggervalue);
+        newTask.children(".task-action").val(tasks[x].action);
+        newTask.children(".task-action-value").val(tasks[x].actionvalue);
+        newTask.children(".task-target").val(tasks[x].target);
+        newTask.children(".task-target-value").val(tasks[x].targetvalue);
+        newTask.find(".task-enabled").attr("checked", true);
+
+        newTask.children("select").trigger("change");
+      }
+    }
+
   });
 
   $("#addTask").click(function(e){
@@ -329,7 +333,6 @@
     e.preventDefault();
     $(this).select();
   });
-
 
 })();
 
