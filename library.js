@@ -24,14 +24,14 @@
 
 	later.date.localTime();
 
-	module.init = function (app, middleware, controllers, callback) {
+	module.init = function (params, callback) {
 
-		app.get('/admin/plugins/teamspeak', middleware.admin.buildHeader, renderAdmin);
-		app.get('/api/admin/plugins/teamspeak', renderAdmin);
+		params.router.get('/admin/plugins/teamspeak', params.middleware.admin.buildHeader, renderAdmin);
+		params.router.get('/api/admin/plugins/teamspeak', renderAdmin);
 
-		app.get('/api/plugins/teamspeak', renderFront);
+		params.router.get('/api/plugins/teamspeak', renderFront);
 
-		app.post('/api/admin/plugins/teamspeak/save', save);
+		params.router.post('/api/admin/plugins/teamspeak/save', save);
 
 		db.getObject('plugins:teamspeak', function(err, data) {
 			if (err) { return; }
@@ -44,12 +44,8 @@
 				};
 			}
 
-			console.log(data);
-
 			updateTimers(data);
-
 			callback();
-
 		});
 	};
 
@@ -80,8 +76,6 @@
 
 			delete data.tasks.__serverInfo__;
 
-			console.log(data);
-
 			res.render(path, data);
 		});
 	}
@@ -94,9 +88,6 @@
 	}
 
 	function save (req, res, next) {
-
-		console.log(req.body.tasks);
-
 		var data = { tasks : req.body.tasks };
 
 		db.setObject('plugins:teamspeak', data, function(err) {
@@ -118,8 +109,6 @@
 	function updateTimers(data){
 		var tasks = data.tasks;
 
-		console.log(tasks);
-		console.log(data);
 		if(!tasks.serverInfo){
 			console.error("No serverinfo");
 			return false;
@@ -240,7 +229,7 @@
 						}
 					}
 
-					console.log(beautify(JSON.stringify(clientsIdleMuted)));
+					// console.log(beautify(JSON.stringify(clientsIdleMuted)));
 
 					timer = setTimeout(checkIdleMuted, checkIdleMutedInterval);
 
@@ -567,11 +556,11 @@
 				var da = task.triggervalue.split(/[\/\:\s]/g);
 				//var d = new Date( da[0], da[1], da[2], da[3], da[4], 0 );
 
-				console.log(da);
+				// console.log(da);
 
 				var sched = later.parse.recur().on(da[0]*1).year().on(da[1]*1).month().on(da[2]*1).dayOfMonth().on(da[3]*1).hour().on(da[4]*1).minute();
 
-				console.log(beautify(JSON.stringify(sched)));
+				// console.log(beautify(JSON.stringify(sched)));
 
 				function func(){
 					try {
@@ -589,11 +578,11 @@
 
 				var da = task.triggervalue.split(/\:/g);
 
-				console.log(da);
+				// console.log(da);
 
 				var sched = da[0]*60*60*1000 + da[1]*60*1000 + da[2]*1000;
 
-				console.log(beautify(JSON.stringify(sched)));
+				// console.log(beautify(JSON.stringify(sched)));
 
 			  var t = setInterval(function(){
 					action[task.action][task.target](task.actionvalue, task.targetvalue);
